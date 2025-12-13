@@ -17,9 +17,10 @@ specific picture is tedious because the relevant information is stored
 in **EXIF metadata**. Accessing these requires specialized software
 (e.g., Lightroom plugins) and lots of menu navigation.
 
-**The solution:** This repository provides simple code and workflow to
-**automatically identify** Fujifilm recipes and **store** them directly
-in pictures’ metadata—making the process fast and effortless.
+**The solution:** This repository provides a workflow and simply to use
+code to **automatically identify** Fujifilm recipes and **store** them
+directly in your pictures’ metadata — making the process fast and
+effortless.
 
 # Prerequisites
 
