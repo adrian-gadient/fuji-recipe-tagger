@@ -155,6 +155,10 @@ If you only (or additionally) want to add the content from the tag
 **`add_film_mode.sh`** into the Terminal, hit \[ENTER\] and follow the
 instructions.
 
+# Questions, feedback, contributions
+
+For bugs, feature requests, and questions, please create a new issue.
+
 # AI tools used
 
 Perplexity was used to generate most of the `bash` code, to translate
