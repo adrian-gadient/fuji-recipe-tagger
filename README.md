@@ -135,10 +135,12 @@ Additional variables will be ignored during the matching process.
 
 ## Step 1: Import metadata from photos
 
-Import metadata with **`get_exif.sh`**. Simply drag this file into the
-Terminal an press \[ENTER\]. Follow the instructions. This generates the
-file `pics_metadata_DATE_TIME.csv`, which includes the path to your
-photos and the settings used to create them.
+Import metadata with **`get_exif.sh`** (scripts for Mac OSX are
+[here](https://github.com/adrian-gadient/fuji-recipe-tagger/tree/main/scripts/macOS)).
+Simply drag this file into the Terminal an press \[ENTER\]. Follow the
+instructions. This generates the file `pics_metadata_DATE_TIME.csv`,
+which includes the path to your photos and the settings used to create
+them.
 
 **Important**: When you’re planning to add your recipe to pictures
 stored in a photo management tool such as **DigiKam** or **Lightroom**,
