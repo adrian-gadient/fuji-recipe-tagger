@@ -7,10 +7,11 @@
 
 **Background:** Fujifilm X cameras have gained popularity among
 photographers for their **film simulation recipes**—custom settings
-combinations that recreate classic film looks. Owners tweak parameters
-like Film Mode, Grain Effect, and Color Temperature to achieve these
-effects. A key resource is the popular site
-[fujixweekly.com](https://fujixweekly.com), which shares many recipes.
+combinations that recreate classic film looks straight out of camera (as
+JPG files). Owners tweak parameters like Film Mode, Grain Effect, and
+Color Temperature to achieve these effects. A key resource is the
+popular site [fujixweekly.com](https://fujixweekly.com), which shares
+many recipes.
 
 **The challenge:** Identifying which recipe had been used after taking a
 specific picture is tedious because the relevant information is stored
@@ -20,21 +21,46 @@ in **EXIF metadata**. Accessing these requires specialized software
 **The solution:** This repository provides a workflow and simply to use
 code to **automatically identify** Fujifilm recipes and **store** them
 directly in your pictures’ metadata — making the process fast and
-effortless.
+effortless. The only effort for users is to create a list with all their
+recipes. The scripts are completely free to use and open source.
 
 # Prerequisites
 
 This code was developed on **Mac OSX**. Windows users need to adapt it.
-To run the code, you need access to the **Terminal**. You must have
-installed `exiftool`, `Miller`, and `awk`. You also require a list that
-holds the recipes’ settings.
+To run the code, you need a few things:
 
-If you drag the script into Terminal and get *Permission denied*, the
-file lacks execute permissions. In this case, you need to make the
+## Access to the **Terminal**
+
+**Command-line interface for running scripts.** Press `Cmd+Space`, type
+“Terminal”, hit Enter—or find in Applications/Utilities. [Apple
+Guide](https://support.apple.com/guide/terminal/open-or-quit-terminal-apd5265185d-f365-44cb-8b09-71a064a42125/mac)
+
+If you drag the script into the Terminal and get *Permission denied*,
+the file lacks execute permissions. In this case, you need to make the
 script(s) executable by typing `chmod +x /path/to/your/script.sh`. After
 pressing \[ENTER\], you should be able to drag the script into the
 Terminal and run it. Note that you need to do this separately for each
 script you want to use.
+
+### `exiftool`
+
+Reads/writes image metadata (EXIF). [Install
+Guide](https://exiftool.org/install.html)
+
+### `awk`
+
+Text processing/pattern scanning utility. This should be pre-installed
+on Mac. If you want to learn more about it, here is a [macOS awk
+guide](https://ss64.com/osx/awk.html)
+
+### `Miller`
+
+CSV/JSON processing like awk+Excel. [Homebrew:
+`brew install miller`](https://miller.readthedocs.io/en/latest/install.html)
+
+### List of recipes
+
+You also require a list that holds the recipes’ settings (see below).
 
 # Workflow
 
@@ -141,7 +167,7 @@ The outcome will look something like this:
 | /Pictures/2023/2023-07-29/PRO30253.JPG | PRO30253.JPG | Kodak Portra 800 |
 | /Pictures/2023/2023-07-29/PRO30247.JPG | PRO30247.JPG | Kodacolor        |
 
-## Step 3: Add informaiton to keywords tag
+## Step 3: Add information to keywords tag
 
 Drag **`add_recipes.sh`** into the Terminal to programmatically create
 or update the tag “Keywords” in each picture’s metadata according to the
@@ -157,7 +183,16 @@ instructions.
 
 # Questions, feedback, contributions
 
-For bugs, feature requests, and questions, please create a new issue.
+I hope the scripts will be useful to many people. If you try them, let
+me know how they work for you. For
+[bugs](https://github.com/adrian-gadient/fuji-recipe-tagger/issues/new?template=bug_report.md&title=bug%3A+%5Bshort+description%5D),
+[feature
+request](https://github.com/adrian-gadient/fuji-recipe-tagger/issues/new?labels=enhancement&title=feat%3A+%5Byour+idea%5D),
+or
+[questions](https://github.com/adrian-gadient/fuji-recipe-tagger/issues/new?labels=question&title=question%3A+%5Bshort+description%5D),
+please create a new issue.
+
+If you have suggestions for code improvement, please get in touch, too.
 
 # AI tools used
 
