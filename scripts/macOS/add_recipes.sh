@@ -9,7 +9,7 @@
 # Options to make script fail fast and avoid subtle bugs
 set -euo pipefail
 
-read -p $'Drag \033[1;32mcsv file with sourcefile paths and recipes\033[0m into the Terminal (typically 'sourcefile_filmsim.csv'), then press [ENTER] ' csv_path
+read -p $'Drag \033[1;32mcsv file with file paths and recipes\033[0m into the Terminal (typically 'matched_recipes.csv'), then press [ENTER] ' csv_path
 
 csv_path=${csv_path#\"}; csv_path=${csv_path%\"}  # remove quotes if any
 
