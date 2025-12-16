@@ -55,8 +55,17 @@ You also require a list that holds the recipes' settings (see below).
 
 # Workflow
 
-I provide three sequential scripts. You can either execute them
-sequentially or stop after steps 1 or 2. Step 1
+Below you find three sequential scripts (and an independent script for 
+only tagging "film mode"). You can either execute them sequentially or 
+stop after steps 1 or 2. You can use the scripts for photos that are 
+already part of a photo collection and / or management tool (e.g.,
+**DigiKam** or **Lightroom**). 
+
+**Important**: When you're planning to add your recipe to pictures
+stored in a photo management tool, you may inadvertently override 
+existing keyowrds. To make sure this doesn't happen, you should store 
+any metadata from these applications directly in the photos or create 
+a backup.
 
 ## Prepare a list with all your film simulations
 
@@ -126,8 +135,9 @@ data.frame(
 
 Possible **procedure** to create such a list:
 
-1.  Open a spreadsheet (e.g., Excel) and enter the settings (`values`; e.g., film mode = "Classic Chrome")
-required for a specific recipe.
+1.  Open a spreadsheet (e.g., Excel) and enter the settings 
+(`values`; e.g., film mode = "Classic Chrome") required for 
+a specific recipe. 
 
 2.  It may be helpful to first import the metadata of some pictures.
 Inspecting the `pics_metadata.csv` file (see step 1) will help 
@@ -135,6 +145,10 @@ to find the relevant tag names and values to specify the
 "ingredients" of your recipes.
 
 3.  Save all your recipes in a csv file (e.g., `recipes.csv`).
+
+**Important**: The values in your recipe file need to **exactly** 
+match those stored in the pictures' metadata. Avoid divergent 
+spelling, extra spaces, etc. Missing information is best left empty.
 
 ### Tip
 
@@ -148,12 +162,6 @@ Import metadata with **`get_exif.sh`** (scripts for Mac OSX are [here](https://g
 into the Terminal an press [ENTER]. Follow the instructions. This 
 generates the file `pics_metadata_DATE_TIME.csv`, which includes
 the path to your photos and the settings used to create them.
-
-**Important**: When you're planning to add your recipe to pictures
-stored in a photo management tool such as **DigiKam** or **Lightroom**,
-you may inadvertently override existing keyowrds. To make sure this 
-doesn't happen, you should store any Metadata from these applications 
-directly in the photos or create a backup.
 
 ## Step 2: Identify which simulation was used to create a photo
 

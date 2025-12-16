@@ -64,8 +64,17 @@ You also require a list that holds the recipes’ settings (see below).
 
 # Workflow
 
-I provide three sequential scripts. You can either execute them
-sequentially or stop after steps 1 or 2. Step 1
+Below you find three sequential scripts (and an independent script for
+only tagging “film mode”). You can either execute them sequentially or
+stop after steps 1 or 2. You can use the scripts for photos that are
+already part of a photo collection and / or management tool (e.g.,
+**DigiKam** or **Lightroom**).
+
+**Important**: When you’re planning to add your recipe to pictures
+stored in a photo management tool, you may inadvertently override
+existing keyowrds. To make sure this doesn’t happen, you should store
+any metadata from these applications directly in the photos or create a
+backup.
 
 ## Prepare a list with all your film simulations
 
@@ -127,6 +136,10 @@ Possible **procedure** to create such a list:
 
 3.  Save all your recipes in a csv file (e.g., `recipes.csv`).
 
+**Important**: The values in your recipe file need to **exactly** match
+those stored in the pictures’ metadata. Avoid divergent spelling, extra
+spaces, etc. Missing information is best left empty.
+
 ### Tip
 
 You can add other information to your recipes file such as the source /
@@ -141,12 +154,6 @@ Simply drag this file into the Terminal an press \[ENTER\]. Follow the
 instructions. This generates the file `pics_metadata_DATE_TIME.csv`,
 which includes the path to your photos and the settings used to create
 them.
-
-**Important**: When you’re planning to add your recipe to pictures
-stored in a photo management tool such as **DigiKam** or **Lightroom**,
-you may inadvertently override existing keyowrds. To make sure this
-doesn’t happen, you should store any Metadata from these applications
-directly in the photos or create a backup.
 
 ## Step 2: Identify which simulation was used to create a photo
 
