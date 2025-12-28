@@ -5,6 +5,16 @@
 
 # How to auto-tag Fuji recipes to photos
 
+## Brief summary
+
+This project explains how to quickly extract hidden information from
+your Fuji photos, identify the settings used during shooting, and save
+that information in a much more accessible way. This works with bash
+code (scripts for Mac OSX are
+[here](https://github.com/adrian-gadient/fuji-recipe-tagger/tree/main/scripts/macOS)).
+
+## Introduction
+
 **Background:** Fujifilm X cameras have gained popularity among
 photographers for their **film simulation recipes**—custom settings
 combinations that recreate classic film looks straight out of camera (as
@@ -148,8 +158,8 @@ Additional variables will be ignored during the matching process.
 
 ## Step 1: Import metadata from photos
 
-Import metadata with **`get_exif.sh`** (scripts for Mac OSX are
-[here](https://github.com/adrian-gadient/fuji-recipe-tagger/tree/main/scripts/macOS)).
+Import metadata with **`get_exif.sh`** (download
+[here](https://raw.githubusercontent.com/adrian-gadient/fuji-recipe-tagger/refs/heads/main/scripts/macOS/get_exif.sh)).
 Simply drag this file into the Terminal an press \[ENTER\]. Follow the
 instructions. This generates the file `pics_metadata_DATE_TIME.csv`,
 which includes the path to your photos and the settings used to create
@@ -157,8 +167,9 @@ them.
 
 ## Step 2: Identify which simulation was used to create a photo
 
-Drag **`identify_recipes.sh`** into the Terminal and press \[ENTER\].
-Follow the instructions.
+Drag **`identify_recipes.sh`** (download
+[here](https://raw.githubusercontent.com/adrian-gadient/fuji-recipe-tagger/refs/heads/main/scripts/macOS/identify_recipes.sh))
+into the Terminal and press \[ENTER\]. Follow the instructions.
 
 This script compares the extracted EXIF metadata to your recipes and
 creates two files: `matched_recipes.csv` includes the path to and name
@@ -178,17 +189,20 @@ The outcome will look something like this:
 
 ## Step 3: Add information to keywords tag
 
-Drag **`add_recipes.sh`** into the Terminal to programmatically create
-or update the tag “Keywords” in each picture’s metadata according to the
-file `matched_recipes.csv`. This script doesn’t delete any information
-in the tag “Keywords”. Duplicate entries are avoided.
+Drag **`add_recipes.sh`** (download
+[here](https://raw.githubusercontent.com/adrian-gadient/fuji-recipe-tagger/refs/heads/main/scripts/macOS/add_recipes.sh))
+into the Terminal to programmatically create or update the tag
+“Keywords” in each picture’s metadata according to the file
+`matched_recipes.csv`. This script doesn’t delete any information in the
+tag “Keywords”. Duplicate entries are avoided.
 
 # Bonus: Add FilmMode to keywords
 
 If you only (or additionally) want to add the content from the tag
 `FilmMode` to `Keywords`, there’s also code for that: Just darg
-**`add_film_mode.sh`** into the Terminal, hit \[ENTER\] and follow the
-instructions.
+**`add_film_mode.sh`**
+<a href="https://raw.githubusercontent.com/adrian-gadient/fuji-recipe-tagger/main/scripts/macOS/add_film_mode.sh" download="add_film_mode.sh">(download
+here)</a> into the Terminal, hit \[ENTER\] and follow the instructions.
 
 # Questions, feedback, contributions
 
