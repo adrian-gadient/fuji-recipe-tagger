@@ -94,7 +94,7 @@ already part of a photo collection and / or management tool (e.g.,
 
 **Important**: When you’re planning to add your recipe to pictures
 stored in a photo management tool, you may inadvertently override
-existing keyowrds. To make sure this doesn’t happen, you should store
+existing keywords. To make sure this doesn’t happen, you should store
 any metadata from these applications directly in the photos or create a
 backup.
 
