@@ -240,6 +240,12 @@ if [ "$matched_rows" -eq 0 ]; then
 fi
 echo ""
 
+if [ "$matched_rows" -gt "$tags_rows" ]; then
+  echo -e "\033[31mWarning: There are more matched photos than input photos. This is probably because your recipe file includes duplicate entries.\033[0m"
+  echo ""
+fi
+
+
 # 8) Final status message --------------------------------------------------------
 if [ -f "$output_csv" ]; then
   echo -e "\033[32mList of matched jpgs saved to:\033[0m $output_csv"
