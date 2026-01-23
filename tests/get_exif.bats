@@ -11,7 +11,7 @@ setup() {
   TEST_ROOT="$(mktemp -d)"
 
   # Path to real test JPGs
-  REAL_JPG_SOURCE="$REPO_ROOT/testdata/images/PRO34551.JPG"
+  REAL_JPG_SOURCE="$REPO_ROOT/testdata/images/PRO34551.jpg"
 
   INPUT_DIR="$TEST_ROOT/input"
   OUTPUT_DIR="$TEST_ROOT/output"
