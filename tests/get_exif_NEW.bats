@@ -2,38 +2,41 @@
 # Bats test suite for scripts/macOS/get_exif.sh
 # Run with: bats tests/
 
-# Create setup that runs before test to ensure isolated environment
+# Create setup that runs before every test to ensure isolated environment
 setup() {
-  # Strip "/tests" to get repo root 
+  # Strip "/tests" to get repo root (e.g. /repo/tests → /repo)
   REPO_ROOT="${BATS_TEST_DIRNAME%/tests}"
   
   # Create unique temp directory 
   # Prevents test interference when running in parallel
   TEST_ROOT="$(mktemp -d)"
   
-  # Define input/output dirs INSIDE our temp folder (isolated from filesystem)
-  INPUT_DIR="$TEST_ROOT/input"
+  # Use REAL testdata directory directly (no copying needed)
+  INPUT_DIR="$REPO_ROOT/tests/testdata/images"
+  
+  # Define output dir INSIDE our temp folder (isolated)
   OUTPUT_DIR="$TEST_ROOT/output"
   
   # Full path to script under test
   SCRIPT_PATH="$REPO_ROOT/scripts/macOS/get_exif.sh"
   
-  # Create empty input/output directories
-  mkdir -p "$INPUT_DIR" "$OUTPUT_DIR"
+  # Create output directory
+  mkdir -p "$OUTPUT_DIR"
   
-  # Copy real Fujifilm test image (if it exists in testdata/)
-  REAL_JPG_SOURCE="$REPO_ROOT/tests/testdata/images/PRO34551.jpg"
-  if [ -f "$REAL_JPG_SOURCE" ]; then
-    # Copy with test-friendly name
-    cp "$REAL_JPG_SOURCE" "$INPUT_DIR/real_sample.jpg"
-  else
-    # Graceful fallback - create empty placeholder so tests still run
-    echo "Warning: Test JPG missing at $REAL_JPG_SOURCE"
-    touch "$INPUT_DIR/real_sample.jpg"
+  # Verify testdata/images directory exists and contains JPGs
+  if [ ! -d "$INPUT_DIR" ]; then
+    echo "Error: $INPUT_DIR not found - create tests/testdata/images/ with JPGs"
+    exit 1
+  fi
+  
+  # Count JPG files for validation
+  JPG_COUNT=$(find "$INPUT_DIR" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" \) | wc -l)
+  if [ "$JPG_COUNT" -eq 0 ]; then
+    echo "Warning: No JPG files found in $INPUT_DIR"
   fi
 }
 
-# Runs AFTER every single test - cleans up temp files
+# Runs AFTER every single test - cleans up temp output files
 teardown() {
   # Safe cleanup (only if TEST_ROOT was created)
   [ -n "$TEST_ROOT" ] && rm -rf "$TEST_ROOT"
@@ -47,7 +50,9 @@ teardown() {
 
 # Test script correctly rejects empty input directory
 @test "fails when input dir is empty" {
-  # Simulate user pressing Enter (empty input) then typing output dir
+  local empty_input="$TEST_ROOT/empty"
+  mkdir -p "$empty_input"
+  
   run bash "$SCRIPT_PATH" <<< $'\n'"$OUTPUT_DIR"$'\n'
   [ "$status" -ne 0 ]            # Must exit non-zero
   [[ "$output" == *"Input path"* ]]  # Shows expected error message
@@ -89,44 +94,64 @@ teardown() {
   chmod +w "$readonly_dir" 2>/dev/null || true
 }
 
-# Test script fails when input directory contains no JPG files
-@test "fails when no JPG files found" {
-  local empty_dir="$TEST_ROOT/empty"
-  mkdir -p "$empty_dir"
-  
-  run bash "$SCRIPT_PATH" <<< "$empty_dir"$'\n'"$OUTPUT_DIR"$'\n'
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"No JPG"* ]]
-}
-
-# Test happy path - script processes real JPG and creates CSV
-@test "creates CSV when JPG present" {
-  # Skip if real test image is missing from repo
-  if [ -f "$REPO_ROOT/tests/testdata/images/PRO34551.jpg" ]; then
-    # Run script with valid input/output directories
-    run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n'"$OUTPUT_DIR"$'\n'
-    
-    [ "$status" -eq 0 ]                           # Must exit successfully
-    [[ "$output" == *"JPG/JPEG files to process"* ]]  # Expected console output
-    
-    # Find generated CSV file (matches script's naming pattern)
-    local csv_file
-    csv_file="$(ls "$OUTPUT_DIR"/pics_metadata_*.csv 2>/dev/null | head -n1)"
-    
-    [ -n "$csv_file" ]    # CSV filename found
-    [ -f "$csv_file" ]    # CSV file exists
-    [ -s "$csv_file" ]    # CSV file is non-empty
-  else
-    skip "Real test JPG missing from testdata/"
-  fi
-}
-
-# Test script handles missing JPG gracefully (empty placeholder file)
-@test "fails gracefully without real JPG" {
-  # Remove JPG file, leaving only empty placeholder
-  rm -f "$INPUT_DIR/real_sample.jpg"
-  
+# Test happy path - script processes ALL JPGs in testdata/images/
+@test "processes all JPGs in testdata/images" {
+  # Run script with real testdata directory
   run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n'"$OUTPUT_DIR"$'\n'
-  [ "$status" -ne 0 ]      # Should fail (no real JPG)
-  [[ "$output" == *"No JPG"* ]]  # Shows expected "no JPGs" error
+  
+  [ "$status" -eq 0 ]                           # Must exit successfully
+  
+  # Verify expected console output
+  [[ "$output" == *"JPG/JPEG files to process"* ]]
+  [[ "$output" == *"Starting EXIF extraction"* ]]
+  [[ "$output" == *"Exif metadata extraction succeeded"* ]]
+  [[ "$output" == *"Output saved here"* ]]
+  
+  # Find ALL generated CSV files (mapfile replacement - portable Bash 3.x+)
+  local csv_files=()
+  while IFS= read -r -d '' csv_file; do
+    csv_files+=("$csv_file")
+  done < <(find "$OUTPUT_DIR" -name "pics_metadata_*.csv" -print0 2>/dev/null)
+  
+  # Verify at least one CSV was created
+  [ ${#csv_files[@]} -gt 0 ]
+  
+  # Verify each CSV is valid
+  for csv_file in "${csv_files[@]}"; do
+    [ -f "$csv_file" ]
+    [ -s "$csv_file" ]  # Non-empty
+    
+    # Check for expected CSV headers
+    run head -n1 "$csv_file"
+    [[ "$output" == *"SourceFile"* ]]
+    [[ "$output" == *"FileName"* ]]
+    [[ "$output" == *"Make"* ]]
+  done
+  
+  # Verify number of CSV rows roughly matches JPG count
+  local total_csv_rows=0
+  for csv_file in "${csv_files[@]}"; do
+    total_csv_rows=$((total_csv_rows + $(wc -l < "$csv_file")))
+  done
+  local jpg_count
+  jpg_count=$(find "$INPUT_DIR" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" \) | wc -l)
+  [ "$total_csv_rows" -ge "$jpg_count" ]
+}
+
+# Test CSV contains Fujifilm data from real images
+@test "CSV contains Fujifilm EXIF data" {
+  run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n'"$OUTPUT_DIR"$'\n'
+  [ "$status" -eq 0 ]
+  
+  local csv_file
+  csv_file="$(ls "$OUTPUT_DIR"/pics_metadata_*.csv 2>/dev/null | head -n1)"
+  [ -n "$csv_file" ]
+  
+  # Check for Fujifilm-specific data
+  run grep -i "FUJIFILM" "$csv_file"
+  [ "$status" -eq 0 ]
+  
+  # Check for Fujifilm X-series cameras
+  run grep -i "X-Pro\|X-T\|X-H" "$csv_file"
+  [ "$status" -eq 0 ]
 }
