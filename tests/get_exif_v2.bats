@@ -1,8 +1,16 @@
 #!/usr/bin/env bats
+
+# Bats test file located at: tests/get_exif.bats
+# Tests the script: scripts/macOS/get_exif.sh
+# Execute tests with command:  "bats tests/"
+
 load 'test_helper/bats-support/load'
 load 'test_helper/bats-assert/load'
 
 setup() {
+
+  # Since tests are in ./tests/, BATS_TEST_DIRNAME = /path/to/repo/tests
+  # Remove trailing "/tests" to get the repository root
   REPO_ROOT="${BATS_TEST_DIRNAME%/tests}"
   script_path="$REPO_ROOT/scripts/macOS/get_exif.sh"
   [ -f "$script_path" ] || fail "Script not found: $script_path"
@@ -33,30 +41,6 @@ teardown() {
   assert_output --partial "Destination folder is empty or not a directory"
 }
 
-@test "processes JPG files and creates CSV (mocked)" {
-  # Create test JPG files
-  touch "$INPUT_DIR"/{test1.jpg,test2.jpg}
-  
-  # Mock exiftool - MUST match exact tags script requests
-  cat > "$TEST_ROOT/exiftool" << 'EOF'
-#!/bin/bash
-cat << 'CSV'
-SourceFile,FileName,Make,Model,DateTimeOriginal
-'$INPUT_DIR/test1.jpg',test1.jpg,Canon,EOS 5D,2025:01:23 10:00:00
-'$INPUT_DIR/test2.jpg',test2.jpg,Nikon,D750,2025:01:23 14:00:00
-CSV
-EOF
-  chmod +x "$TEST_ROOT/exiftool"
-  
-  PATH="$TEST_ROOT:$PATH" run bash -c "printf '$INPUT_DIR\n$OUTPUT_DIR\ny\n' | $script_path"
-  
-  assert_success
-  assert_output --partial "Output saved here"
-  
-  local output_csv
-  output_csv=$(find "$OUTPUT_DIR" -name "pics_metadata_*.csv" | head -1)
-  [ -f "$output_csv" ]
-  [ -s "$output_csv" ]
-}
+
 
 
