@@ -1,22 +1,45 @@
 #!/usr/bin/env bats
 
+# Helper functions for better error messages
 load 'test_helper/bats-support/load'
 load 'test_helper/bats-assert/load'
 
+# Ensure test starts with a clean, isolated environment
 setup() {
+  # Find the repository root directory
+  # BATS_TEST_DIRNAME is the directory where this test file lives (e.g. /repo/tests)
+  # %/tests removes "/tests" from the end → gives us /repo
   REPO_ROOT="${BATS_TEST_DIRNAME%/tests}"
+  
+  # Create a temporary directory for this test
+  # mktemp -d creates a unique temp directory like /tmp/tmp.ABC123
+  # This prevents tests from interfering with each other
   TEST_ROOT="$(mktemp -d)"
   
+  # Path to the real test JPG file in our repository
   REAL_JPG_SOURCE="$REPO_ROOT/tests/testdata/images/PRO34551.jpg"
+  
+  # Create isolated input/output directories in the temp folder
   INPUT_DIR="$TEST_ROOT/input"
   OUTPUT_DIR="$TEST_ROOT/output"
+  
+  # Path to the script we want to test
   SCRIPT_PATH="$REPO_ROOT/scripts/macOS/get_exif.sh"
   
+  # Create the directories (mkdir -p = create parent dirs too, no error if exists)
   mkdir -p "$INPUT_DIR" "$OUTPUT_DIR"
+  
+  # Copy the real test JPG into our isolated input directory
+  # This way each test has its own copy and tests don't affect each other
   cp "$REAL_JPG_SOURCE" "$INPUT_DIR/real_sample.jpg"
 }
 
+# teardown() runs AFTER EACH individual test
+# Cleans up so no test data remains
 teardown() {
+  # Delete the entire temporary directory and everything in it
+  # -r = recursive (including all subdirectories)
+  # -f = force (no error if doesn't exist)
   rm -rf "$TEST_ROOT"
 }
 
