@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
-load '../node_modules/bats-support/load'
-load '../node_modules/bats-assert/load'
+load 'test_helper/bats-support/load'
+load 'test_helper/bats-assert/load'
 
 setup() {
   REPO_ROOT="${BATS_TEST_DIRNAME%/tests}"
