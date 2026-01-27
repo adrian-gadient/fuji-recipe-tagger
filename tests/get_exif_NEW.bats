@@ -58,58 +58,53 @@ teardown() {
 
 # Verify script file exists and has execute permission
 @test "script exists and is executable" {
-
   assert_file_exist "$SCRIPT_PATH"
   assert_file_executable "$SCRIPT_PATH"
 }
 
 # Test script correctly rejects empty input directory
 @test "fails when input dir is empty" {
-  local empty_input="$TEST_ROOT/empty"
-  mkdir -p "$empty_input"
-  
+  # simulate user entering empty input directory and verify script fails
   run bash "$SCRIPT_PATH" <<< $'\n'"$OUTPUT_DIR"$'\n'
-
   assert_failure
   assert_output --partial "Input path"
 }
 
 # Test script handles nonexistent input directory
 @test "fails when input dir does not exist" {
+  # simulate invalid path
   run bash "$SCRIPT_PATH" <<< "/nonexistent/path"$'\n'"$OUTPUT_DIR"$'\n'
-
   assert_failure
   assert_output --partial "Input path"
 }
 
-
 # Test script rejects empty output directory
 @test "fails when output dir is empty" {
   run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n\n'
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Destination folder"* ]]
+  assert_failure
+  assert_output --partial "Destination folder"
 }
 
 # Test script handles nonexistent output directory
 @test "fails when output dir does not exist" {
   run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n'"/nonexistent/path"$'\n'
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Destination folder"* ]]
+ assert_failure
+  assert_output --partial "Destination folder"
 }
 
 # Test script fails when output directory lacks write permissions
 @test "fails when output dir is not writable" {
-  # Create readonly directory
   local readonly_dir="$TEST_ROOT/readonly"
   mkdir -p "$readonly_dir"
-  chmod -w "$readonly_dir"       # Remove write permission
+  chmod -w "$readonly_dir"
   
   run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n'"$readonly_dir"$'\n'
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"not writable"* ]]
   
-  # Restore permissions (suppress errors if already deleted)
-  chmod +w "$readonly_dir" 2>/dev/null || true
+  assert_failure
+  assert_output --partial "not writable"
+  
+  # Cleanup: restore permissions for teardown
+  chmod +w "$readonly_dir"
 }
 
 # Test happy path - script processes ALL JPGs in testdata/images/
