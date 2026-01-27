@@ -10,6 +10,7 @@ setup() {
   # Load helper libraries
   load 'test_helper/bats-support/load'
   load 'test_helper/bats-assert/load'
+  load 'test_helper/bats-file/load'
 
    # get the containing directory of this file
   DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )"
@@ -57,8 +58,9 @@ teardown() {
 
 # Verify script file exists and has execute permission
 @test "script exists and is executable" {
-  [ -f "$SCRIPT_PATH" ]          # File exists
-  [ -x "$SCRIPT_PATH" ]          # Has execute bit set
+
+  assert_file_exist "$SCRIPT_PATH"
+  assert_file_executable "$SCRIPT_PATH"
 }
 
 # Test script correctly rejects empty input directory
@@ -67,16 +69,19 @@ teardown() {
   mkdir -p "$empty_input"
   
   run bash "$SCRIPT_PATH" <<< $'\n'"$OUTPUT_DIR"$'\n'
-  [ "$status" -ne 0 ]            # Must exit non-zero
-  [[ "$output" == *"Input path"* ]]  # Shows expected error message
+
+  assert_failure
+  assert_output --partial "Input path"
 }
 
 # Test script handles nonexistent input directory
 @test "fails when input dir does not exist" {
   run bash "$SCRIPT_PATH" <<< "/nonexistent/path"$'\n'"$OUTPUT_DIR"$'\n'
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Input path"* ]]
+
+  assert_failure
+  assert_output --partial "Input path"
 }
+
 
 # Test script rejects empty output directory
 @test "fails when output dir is empty" {
