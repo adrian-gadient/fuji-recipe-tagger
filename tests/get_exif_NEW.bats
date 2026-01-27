@@ -24,10 +24,10 @@ setup() {
   # Prevents test interference when running in parallel
   TEST_ROOT="$(mktemp -d)"
   
-  # Use REAL testdata directory directly (no copying needed)
+  # Indicate path to test images
   INPUT_DIR="$REPO_ROOT/tests/testdata/images"
   
-  # Define output dir INSIDE our temp folder (isolated)
+  # Define output dir inside temp folder
   OUTPUT_DIR="$TEST_ROOT/output"
   
   # Full path to script under test
@@ -49,7 +49,7 @@ setup() {
   fi
 }
 
-# Runs AFTER every single test - cleans up temp output files
+# Clean up temp output files after every single test
 teardown() {
   # Safe cleanup (only if TEST_ROOT was created)
   [ -n "$TEST_ROOT" ] && rm -rf "$TEST_ROOT"
