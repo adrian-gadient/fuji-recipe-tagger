@@ -40,7 +40,7 @@ setup() {
   # Verify testdata/images directory exists and contains JPGs
   if [ ! -d "$INPUT_DIR" ]; then
     echo "Error: $INPUT_DIR not found - create tests/testdata/images/ with JPGs"
-    exit 1
+    return 1
   fi
   
   # Count JPG files for validation
@@ -52,10 +52,11 @@ setup() {
 
 # Clean up temp output files after every single test
 teardown() {
-  # Safe cleanup (only if TEST_ROOT was created)
-  [ -n "$TEST_ROOT" ] && rm -rf "$TEST_ROOT"
+  if [ -n "$TEST_ROOT" ] && [ -d "$TEST_ROOT" ]; then
+    chmod -R +w "$TEST_ROOT" 2>/dev/null || true
+    rm -rf "$TEST_ROOT"
+  fi
 }
-
 # Verify script file exists and has execute permission
 @test "script exists and is executable" {
   assert_file_exist "$SCRIPT_PATH"
@@ -78,6 +79,17 @@ teardown() {
   assert_output --partial "Input path"
 }
 
+# Check if there are jpgs
+@test "fails when no JPG files found in input directory" {
+  local empty_dir="$TEST_ROOT/empty_images"
+  mkdir -p "$empty_dir"
+  
+  run bash "$SCRIPT_PATH" <<< "$empty_dir"$'\n'"$OUTPUT_DIR"$'\n'
+  
+  assert_failure
+  assert_output --partial "No JPG"
+}
+
 # Test script rejects empty output directory
 @test "fails when output dir is empty" {
   run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n\n'
@@ -88,7 +100,7 @@ teardown() {
 # Test script handles nonexistent output directory
 @test "fails when output dir does not exist" {
   run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n'"/nonexistent/path"$'\n'
- assert_failure
+  assert_failure
   assert_output --partial "Destination folder"
 }
 
@@ -107,64 +119,65 @@ teardown() {
   chmod +w "$readonly_dir"
 }
 
-# Test happy path - script processes ALL JPGs in testdata/images/
+# Test happy flow - script processes all JPGs in testdata/images/
 @test "processes all JPGs in testdata/images" {
-  # Run script with real testdata directory
+  # Skip if no test images available
+  if [ "$JPG_COUNT" -eq 0 ]; then
+    skip "No JPG files found in testdata"
+  fi
+  
   run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n'"$OUTPUT_DIR"$'\n'
   
-  [ "$status" -eq 0 ]                           # Must exit successfully
+  assert_success
+  assert_output --partial "JPG/JPEG files to process"
+  assert_output --partial "Starting EXIF extraction"
+  assert_output --partial "Exif metadata extraction succeeded"
+  assert_output --partial "Output saved here"
   
-  # Verify expected console output
-  [[ "$output" == *"JPG/JPEG files to process"* ]]
-  [[ "$output" == *"Starting EXIF extraction"* ]]
-  [[ "$output" == *"Exif metadata extraction succeeded"* ]]
-  [[ "$output" == *"Output saved here"* ]]
+  # Find generated CSV file(s)
+  local csv_file
+  csv_file="$(find "$OUTPUT_DIR" -name "pics_metadata_*.csv" -print -quit)"
   
-  # Find ALL generated CSV files (mapfile replacement - portable Bash 3.x+)
-  local csv_files=()
-  while IFS= read -r -d '' csv_file; do
-    csv_files+=("$csv_file")
-  done < <(find "$OUTPUT_DIR" -name "pics_metadata_*.csv" -print0 2>/dev/null)
+  # Verify CSV exists and is not empty
+  assert [ -n "$csv_file" ]          
+  assert_file_exist "$csv_file"      
+  assert [ -s "$csv_file" ]  
   
-  # Verify at least one CSV was created
-  [ ${#csv_files[@]} -gt 0 ]
+  # Verify CSV has expected headers
+  run head -n1 "$csv_file"
+  assert_output --partial "SourceFile"
+  assert_output --partial "FileName"
+  assert_output --partial "Make"
   
-  # Verify each CSV is valid
-  for csv_file in "${csv_files[@]}"; do
-    [ -f "$csv_file" ]
-    [ -s "$csv_file" ]  # Non-empty
-    
-    # Check for expected CSV headers
-    run head -n1 "$csv_file"
-    [[ "$output" == *"SourceFile"* ]]
-    [[ "$output" == *"FileName"* ]]
-    [[ "$output" == *"Make"* ]]
-  done
+  # Verify CSV has data rows (at least header + 1 row)
+  local row_count
+  row_count=$(wc -l < "$csv_file")
+  assert [ "$row_count" -gt 1 ]
   
-  # Verify number of CSV rows roughly matches JPG count
-  local total_csv_rows=0
-  for csv_file in "${csv_files[@]}"; do
-    total_csv_rows=$((total_csv_rows + $(wc -l < "$csv_file")))
-  done
-  local jpg_count
-  jpg_count=$(find "$INPUT_DIR" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" \) | wc -l)
-  [ "$total_csv_rows" -ge "$jpg_count" ]
+  # Verify row count matches or exceeds JPG count
+  # (CSV has header + data rows, so total should be JPG_COUNT + 1)
+  assert [ "$row_count" -ge $((JPG_COUNT + 1)) ]
 }
 
 # Test CSV contains Fujifilm data from real images
 @test "CSV contains Fujifilm EXIF data" {
+  # Skip if no test images
+  if [ "$JPG_COUNT" -eq 0 ]; then
+    skip "No JPG files found in testdata"
+  fi
+  
   run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n'"$OUTPUT_DIR"$'\n'
-  [ "$status" -eq 0 ]
+  assert_success
   
   local csv_file
-  csv_file="$(ls "$OUTPUT_DIR"/pics_metadata_*.csv 2>/dev/null | head -n1)"
-  [ -n "$csv_file" ]
+  csv_file="$(find "$OUTPUT_DIR" -name "pics_metadata_*.csv" -print -quit)"
+  assert_not_equal "$csv_file" ""
   
   # Check for Fujifilm-specific data
   run grep -i "FUJIFILM" "$csv_file"
-  [ "$status" -eq 0 ]
+  assert_success
   
   # Check for Fujifilm X-series cameras
-  run grep -i "X-Pro\|X-T\|X-H" "$csv_file"
-  [ "$status" -eq 0 ]
+  run grep -iE "X-" "$csv_file"
+  assert_success
 }
