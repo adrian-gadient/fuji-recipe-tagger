@@ -6,12 +6,19 @@
 
 # Create setup that runs before every test to ensure isolated environment
 setup() {
-  # Strip "/tests" to get repo root (e.g. /repo/tests → /repo)
-  REPO_ROOT="${BATS_TEST_DIRNAME%/tests}"
   
   # Load helper libraries
   load 'test_helper/bats-support/load'
   load 'test_helper/bats-assert/load'
+
+   # get the containing directory of this file
+  DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )"
+  
+  # Derive repo root (go up one level from tests/)
+  REPO_ROOT="$(cd "$DIR/.." && pwd)"
+  
+  # make executables in scripts/ visible to PATH
+  PATH="$REPO_ROOT/scripts:$PATH"
 
   # Create unique temp directory 
   # Prevents test interference when running in parallel
