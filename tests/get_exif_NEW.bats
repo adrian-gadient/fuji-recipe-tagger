@@ -170,6 +170,7 @@ teardown() {
   assert_output --partial "NoiseReduction" 
   assert_output --partial "Clarity" 
   assert_output --partial "ColorTemperature" 
+  # Example images don't include Keywords yet
   # assert_output --partial "Keywords" 
 
   # Verify CSV has data rows (at least header + 1 row)
