@@ -119,16 +119,19 @@ teardown() {
   chmod +w "$readonly_dir"
 }
 
-# Test happy flow - script processes all JPGs in testdata/images/
+# Test happy flow - script works as expected under normal conditions
 @test "processes all JPGs in testdata/images" {
   # Skip if no test images available
   if [ "$JPG_COUNT" -eq 0 ]; then
     skip "No JPG files found in testdata"
   fi
   
-  run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n'"$OUTPUT_DIR"$'\n'
+  # Run script, mimic user typing two paths and pressing enter ('\n') when prompted
+  run bash "$SCRIPT_PATH" <<< "$INPUT_DIR"$'\n'"$OUTPUT_DIR"$'\n' 
   
+  # Verify exit code is 0 (success)
   assert_success
+  # Check that script output contains these strings
   assert_output --partial "JPG/JPEG files to process"
   assert_output --partial "Starting EXIF extraction"
   assert_output --partial "Exif metadata extraction succeeded"
@@ -136,19 +139,39 @@ teardown() {
   
   # Find generated CSV file(s)
   local csv_file
+  # '-print -quit' finds the first match and immediately exits
   csv_file="$(find "$OUTPUT_DIR" -name "pics_metadata_*.csv" -print -quit)"
   
   # Verify CSV exists and is not empty
-  assert [ -n "$csv_file" ]          
-  assert_file_exist "$csv_file"      
-  assert [ -s "$csv_file" ]  
+  assert [ -n "$csv_file" ]  # Variable is not empty (a file was found)        
+  assert_file_exist "$csv_file"  # The file path is valid and exists    
+  assert [ -s "$csv_file" ]   # File has content (size > 0 bytes)
   
   # Verify CSV has expected headers
+  # Read first line
   run head -n1 "$csv_file"
   assert_output --partial "SourceFile"
   assert_output --partial "FileName"
   assert_output --partial "Make"
-  
+  assert_output --partial "Model" 
+  # assert_output --partial "DateTimeOriginal" 
+  # assert_output --partial "FilmMode" 
+  # assert_output --partial "GrainEffectSize" 
+  # assert_output --partial "GrainEffectRoughness" 
+  # assert_output --partial "ColorChromeEffect" 
+  # assert_output --partial "ColorChromeFXBlue" 
+  # assert_output --partial "WhiteBalance" 
+  # assert_output --partial "ColorTemperature" 
+  # assert_output --partial "WhiteBalanceFineTune" 
+  # assert_output --partial "DevelopmentDynamicRange" 
+  # assert_output --partial "HighlightTone" 
+  # assert_output --partial "ShadowTone" 
+  # assert_output --partial "Saturation" 
+  # assert_output --partial "Sharpness" 
+  # assert_output --partial "NoiseReduction" 
+  # assert_output --partial "Clarity" 
+  # assert_output --partial "Keywords" 
+
   # Verify CSV has data rows (at least header + 1 row)
   local row_count
   row_count=$(wc -l < "$csv_file")
@@ -156,7 +179,7 @@ teardown() {
   
   # Verify row count matches or exceeds JPG count
   # (CSV has header + data rows, so total should be JPG_COUNT + 1)
-  assert [ "$row_count" -ge $((JPG_COUNT + 1)) ]
+  assert [ "$row_count" -ge $((JPG_COUNT + 1)) ] # '-ge' means greater than or equal 
 }
 
 # Test CSV contains Fujifilm data from real images
@@ -171,13 +194,13 @@ teardown() {
   
   local csv_file
   csv_file="$(find "$OUTPUT_DIR" -name "pics_metadata_*.csv" -print -quit)"
-  assert_not_equal "$csv_file" ""
+  assert [ -n "$csv_file" ] # Variable is not empty (a file was found)
   
   # Check for Fujifilm-specific data
   run grep -i "FUJIFILM" "$csv_file"
   assert_success
   
-  # Check for Fujifilm X-series cameras
-  run grep -iE "X-" "$csv_file"
+  # Check for Fujifilm X-series cameras used to create test images
+  run grep -iE "X-Pro|X-T|X-H" "$csv_file"
   assert_success
 }
