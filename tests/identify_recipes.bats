@@ -61,6 +61,12 @@ setup() {
   # This makes it easy to reference the script in all our tests
   SCRIPT_PATH="$REPO_ROOT/scripts/macOS/identify_recipes.sh"
 
+  # Path to actual recipes.csv in project root
+  ACTUAL_RECIPES_CSV="$REPO_ROOT/recipes.csv"
+
+ # Path to test images directory
+  TESTDATA_IMAGES_DIR="$REPO_ROOT/tests/testdata/images"
+
   # Create the input directory structure
   mkdir -p "$INPUT_DIR"
 
@@ -75,6 +81,11 @@ setup() {
   # If not installed, skip all tests with a helpful message
   if ! command -v mlr >/dev/null 2>&1; then
     skip "Miller (mlr) not installed - install with: brew install miller"
+  fi
+
+   # Verify exiftool is installed - required dependency
+  if ! command -v exiftool >/dev/null 2>&1; then
+    skip "exiftool not installed - install with: brew install exiftool"
   fi
 }
 
@@ -273,4 +284,77 @@ EOF
   # Verify the matching photo is NOT in the unmatched file
   run grep "PRO36627.JPG" "$OUTPUT_DIR/unmatched_jpgs.csv"
   assert_failure
+}
+
+@test "successfully matches using actual recipes.csv and real images" {
+  # Verify actual recipes.csv exists - FAIL if it doesn't
+  assert_file_exist "$ACTUAL_RECIPES_CSV"
+  
+  # Verify test images directory exists
+  assert_dir_exist "$TESTDATA_IMAGES_DIR"
+  
+  # Verify exiftool is available - FAIL if it's not
+  # exiftool is a core dependency and should always be installed
+  if ! command -v exiftool >/dev/null 2>&1; then
+    echo "ERROR: exiftool is required but not installed" >&2
+    echo "Install with: brew install exiftool" >&2
+    return 1
+  fi
+  
+  # Count available test images
+  local image_count=$(find "$TESTDATA_IMAGES_DIR" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" \) | wc -l)
+  
+  # Fail if no test images found
+  if [ "$image_count" -eq 0 ]; then
+    echo "ERROR: No test images found in $TESTDATA_IMAGES_DIR" >&2
+    return 1
+  fi
+  
+  # Create metadata CSV from actual test images using exiftool
+  local temp_metadata="$INPUT_DIR/real_images_metadata.csv"
+  
+  # Extract EXIF metadata from test images
+  exiftool -csv -SourceFile -FileName -Make -Model -DateTimeOriginal -FilmMode -GrainEffectSize -GrainEffectRoughness -ColorChromeEffect -ColorChromeFXBlue -WhiteBalance -ColorTemperature -WhiteBalanceFineTune -DevelopmentDynamicRange -HighlightTone -ShadowTone -Saturation -Sharpness -NoiseReduction -Clarity "$TESTDATA_IMAGES_DIR"/*.jpg "$TESTDATA_IMAGES_DIR"/*.JPG > "$temp_metadata" 2>/dev/null || true
+  
+  # Verify metadata file was created and has content
+  assert_file_exist "$temp_metadata"
+  assert [ -s "$temp_metadata" ]
+    
+  # Run script with real recipes.csv and real image metadata
+  run bash "$SCRIPT_PATH" <<< "$temp_metadata"$'\n'"$ACTUAL_RECIPES_CSV"$'\n'"$OUTPUT_DIR"$'\n'
+  
+  # Verify script succeeded
+  assert_success
+  assert_output --partial "✓ All paths valid"
+  
+  # Verify output file was created
+  assert_file_exist "$OUTPUT_DIR/matched_recipes.csv"
+  
+  # Verify output has the expected structure
+  run head -n 1 "$OUTPUT_DIR/matched_recipes.csv"
+  assert_output --partial "SourceFile,FileName,filmsim"
+  
+  # Count matches
+  local matched_count=$(tail -n +2 "$OUTPUT_DIR/matched_recipes.csv" | wc -l)
+  
+  echo "Total test images: $image_count" >&3
+  echo "Matched recipes: $matched_count" >&3
+  
+  # If there ARE matches, verify they have recipe names
+  if [ "$matched_count" -gt 0 ]; then
+    echo "=== Matched Recipes ===" >&3
+    cat "$OUTPUT_DIR/matched_recipes.csv" >&3
+    
+    local first_match=$(tail -n +2 "$OUTPUT_DIR/matched_recipes.csv" | head -n 1)
+    local recipe_name=$(echo "$first_match" | cut -d',' -f3)
+    assert [ -n "$recipe_name" ]
+  else
+    echo "No matches found - test images don't match any recipes" >&3
+  fi
+  
+  # If unmatched file was created, show it
+  if [ -f "$OUTPUT_DIR/unmatched_jpgs.csv" ]; then
+    echo "=== Unmatched Images ===" >&3
+    cat "$OUTPUT_DIR/unmatched_jpgs.csv" >&3
+  fi
 }
