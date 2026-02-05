@@ -4,8 +4,9 @@
 # ============================================================================
 # Author: Adrian Gadient
 # Last updated: 27 January 2026
-# Run with: bats tests/
-#
+# Run locally with: bats tests/
+# Run in docker: docker compose run --rm bats
+# 
 # What this test suite does:
 # - Verifies the EXIF extraction script works correctly
 # - Tests input validation (missing directories, empty folders, permissions)
@@ -195,6 +196,10 @@ teardown() {
 # Test that script detects permission issues before attempting to write.
 # This prevents cryptic errors later during CSV file creation.
 @test "fails when output dir is not writable" {
+  if [ -f /.dockerenv ]; then
+  skip "Permission test unreliable in Docker (runs as root)"
+fi
+
   # Create a directory but remove write permissions
   local readonly_dir="$TEST_ROOT/readonly"
   mkdir -p "$readonly_dir"

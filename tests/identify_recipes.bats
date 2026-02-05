@@ -4,7 +4,8 @@
 # ============================================================================
 # Author: Adrian Gadient
 # Last updated: January 28, 2026
-# Run with: bats tests/
+# Run locally with: bats tests/
+# Run in docker: docker compose run --rm bats
 #
 # What this test suite does:
 # - Verifies the recipe matching script works correctly

@@ -4,7 +4,8 @@
 # ============================================================================
 # Author: Adrian Gadient
 # Last updated: January 31, 2026
-# Run with: bats tests/
+# Run locally with: bats tests/
+# Run in docker: docker compose run --rm bats
 # Run with debug output: DEBUG_TESTS=1 bats tests/
 #
 # What this test suite does:
