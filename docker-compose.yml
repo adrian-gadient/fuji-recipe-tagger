@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  bats:
+    build: .
+    volumes:
+      - .:/code # Links folder to container; mount project folder as /code inside the container
+    working_dir: /code # When the container starts, work inside /code 
+    command: /code/tests/ # Run tests from /code path
