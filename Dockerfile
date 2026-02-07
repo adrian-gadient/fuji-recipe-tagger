@@ -15,13 +15,15 @@ WORKDIR /code
 # Copy project files
 COPY . /code/
 
-# Create symlinks to helpers DURING BUILD
-RUN mkdir -p /code/tests/test_helper && \
+# FORCE remove any existing test_helper directory and create symlinks
+RUN rm -rf /code/tests/test_helper && \
+    mkdir -p /code/tests/test_helper && \
     ln -s /opt/bats-helpers/bats-support /code/tests/test_helper/bats-support && \
     ln -s /opt/bats-helpers/bats-assert /code/tests/test_helper/bats-assert && \
-    ln -s /opt/bats-helpers/bats-file /code/tests/test_helper/bats-file
+    ln -s /opt/bats-helpers/bats-file /code/tests/test_helper/bats-file && \
+    ls -la /code/tests/test_helper
 
-# Make scripts executable (fix the path!)
+# Make scripts executable
 RUN find /code/scripts -name "*.sh" -exec chmod +x {} \; && \
     find /code/tests -name "*.bats" -exec chmod +x {} \;
 
