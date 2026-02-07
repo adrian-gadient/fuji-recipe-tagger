@@ -1,3 +1,6 @@
+# Run in Terminal: docker compose build
+# Or build completely new: docker compose build --no-cache 
+
 FROM bats/bats:latest
 
 # Install dependencies
