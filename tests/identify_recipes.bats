@@ -25,9 +25,9 @@
 setup() {
   # Load bats helper libraries for advanced assertions
   # These provide functions like assert_success, assert_output, assert_file_exist
-  load 'test_helper/bats-support/load'    # Core support functions
-  load 'test_helper/bats-assert/load'     # Assertion functions (assert_success, etc.)
-  load 'test_helper/bats-file/load'       # File-related assertions
+  load '/opt/bats-helpers/bats-support/load'    # Core support functions
+  load '/opt/bats-helpers/bats-assert/load'     # Assertion functions (assert_success, etc.)
+  load '/opt/bats-helpers/bats-file/load'       # File-related assertions
 
   # Get the directory containing this test file
   # This works even if the test is run from a different directory

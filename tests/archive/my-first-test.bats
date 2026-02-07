@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
+load '/opt/bats-helpers/bats-support/load'
+load '/opt/bats-helpers/bats-assert/load'
 
 @test "It Works" {
     # Arrange

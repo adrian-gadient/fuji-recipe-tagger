@@ -4,8 +4,8 @@
 # Tests the script: scripts/macOS/get_exif.sh
 # Execute tests with command:  "bats tests/"
 
-load 'test_helper/bats-support/load'
-load 'test_helper/bats-assert/load'
+load '/opt/bats-helpers/bats-support/load'
+load '/opt/bats-helpers/bats-assert/load'
 
 setup() {
 

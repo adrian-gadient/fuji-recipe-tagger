@@ -24,9 +24,9 @@
 # the test data files. This ensures each test starts fresh and isolated.
 setup() {
   # Load bats helper libraries for advanced assertions
-  load 'test_helper/bats-support/load'    # Core support functions
-  load 'test_helper/bats-assert/load'     # Assertion functions
-  load 'test_helper/bats-file/load'       # File-related assertions
+  load '/opt/bats-helpers/bats-support/load'    # Core support functions
+  load '/opt/bats-helpers/bats-assert/load'     # Assertion functions
+  load '/opt/bats-helpers/bats-file/load'       # File-related assertions
 
   # Get the directory containing this test file
   DIR="$( cd "$( dirname "$BATS_TEST_FILENAME" )" >/dev/null 2>&1 && pwd )"
