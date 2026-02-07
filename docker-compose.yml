@@ -3,6 +3,8 @@ services:
     build: .
     volumes:
       - .:/code
+      - ./tests:/code/tests:ro  # Mount entire tests dir including helpers
+      - ./testdata:/code/testdata:ro  # Ensure test images/data available
     working_dir: /code
     entrypoint: /bin/bash
     command:
