@@ -9,6 +9,8 @@ editor_options:
 
 <!-- Regularly render `README.Rmd` to keep `README.md` up-to-date. -->
 
+![Tests](https://github.com/adrian-gadient/fuji-recipe-tagger/workflows/Test/badge.svg)
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,

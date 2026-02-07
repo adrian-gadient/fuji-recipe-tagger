@@ -3,6 +3,13 @@
 
 <!-- Regularly render `README.Rmd` to keep `README.md` up-to-date. -->
 
+<figure>
+<img
+src="https://github.com/adrian-gadient/fuji-recipe-tagger/workflows/Test/badge.svg"
+alt="Tests" />
+<figcaption aria-hidden="true">Tests</figcaption>
+</figure>
+
 # How to auto-tag Fuji recipes to photos
 
 ## Brief summary
