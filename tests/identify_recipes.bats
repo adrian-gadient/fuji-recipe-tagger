@@ -3,9 +3,8 @@
 # Bats test suite for film recipe matching script
 # ============================================================================
 # Author: Adrian Gadient
-# Last updated: January 28, 2026
-# Run locally with: bats tests/
-# Run in docker: docker compose run --rm bats
+# Last updated: February 8, 2026
+# Run locally in Docker: docker compose run --rm bats
 #
 # What this test suite does:
 # - Verifies the recipe matching script works correctly

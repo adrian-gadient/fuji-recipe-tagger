@@ -3,9 +3,8 @@
 # Bats test suite for scripts/macOS/get_exif.sh
 # ============================================================================
 # Author: Adrian Gadient
-# Last updated: 27 January 2026
-# Run locally with: bats tests/
-# Run in docker: docker compose run --rm bats
+# Last updated: February 8, 2026
+# Run locally in Docker: docker compose run --rm bats
 # 
 # What this test suite does:
 # - Verifies the EXIF extraction script works correctly
