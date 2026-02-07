@@ -1,9 +1,15 @@
-version: '3.8'
-
 services:
   bats:
     build: .
     volumes:
-      - .:/code # Links folder to container; mount project folder as /code inside the container
-    working_dir: /code # When the container starts, work inside /code 
-    command: /code/tests/ # Run tests from /code path
+      - .:/code
+    working_dir: /code
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /code/tests/test_helper
+        ln -s /opt/bats-helpers/bats-support /code/tests/test_helper/bats-support 2>/dev/null || true
+        ln -s /opt/bats-helpers/bats-assert /code/tests/test_helper/bats-assert 2>/dev/null || true
+        ln -s /opt/bats-helpers/bats-file /code/tests/test_helper/bats-file 2>/dev/null || true
+        bats /code/tests/
