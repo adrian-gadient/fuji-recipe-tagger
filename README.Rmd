@@ -92,6 +92,22 @@ here is a [macOS awk guide](https://ss64.com/osx/awk.html)
 Used for reading, transforming, joining, filtering, and cleaning CSV data. 
 Can be installed with [Homebrew](https://miller.readthedocs.io/en/latest/install.html).
 
+## Installation
+
+### Quick Start (macOS)
+
+```bash
+# Install dependencies
+brew install exiftool miller
+
+# Download scripts
+git clone https://github.com/adrian-gadient/fuji-recipe-tagger.git
+cd fuji-recipe-tagger/scripts/macOS
+
+# Make executable
+chmod +x *.sh
+```
+
 ## Workflow
 
 Below you find three sequential scripts (and an independent fourth script 
@@ -241,6 +257,23 @@ Duplicate entries are avoided.
 In contrast to the Fuji specific metadata (e.g., Sharpness), the **"Keywords"**
 tag is **commonly recognized** by various software (incl. Lightroom). It even appears 
 in Mac's Finder when you click on "Get Info" (or Command + i). 
+
+## Example Usage
+
+### Complete Workflow Example
+```bash
+# 1. Extract EXIF data
+./scripts/macOS/get_exif.sh
+# When prompted, drag your photos folder and output folder
+
+# 2. Match recipes
+./scripts/macOS/identify_recipes.sh
+# Drag: metadata CSV, recipes.csv, output folder
+
+# 3. Tag photos
+./scripts/macOS/add_recipes.sh
+# Drag: matched_recipes.csv
+```
 
 ## Bonus: Add FilmMode to keywords
 
