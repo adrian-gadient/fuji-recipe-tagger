@@ -4,6 +4,8 @@
 <!-- Regularly render `README.Rmd` to keep `README.md` up-to-date. -->
 
 [![Tests](https://github.com/adrian-gadient/fuji-recipe-tagger/workflows/Tests/badge.svg)](https://github.com/adrian-gadient/fuji-recipe-tagger/actions)
+[![License](https://img.shields.io/github/license/adrian-gadient/fuji-recipe-tagger)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-macOS-blue)]()
 
 # How to auto-tag Fuji recipes to photos
 
