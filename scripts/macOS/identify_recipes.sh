@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 
+# Script: identify_recipes.sh
+# Description: Identifies film recipes based on the metadata of photos
+# Either type in the Terminal: ./identify_recipes.sh
+# or drag this file into the Terminal and press ENTER
+#   Follow prompts to select input directory and output location
+# Requirements: Miller
 # Author: Adrian Gadient
 # Last updated: 2025/12/4
-# This script uses bash shell scipting to identify film recipes based on the metadata of photos
 
 # Options to make script fail fast and avoid subtle bugs
 set -euo pipefail

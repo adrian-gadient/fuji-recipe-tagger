@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 
-# Add recipe to tag "Keywords" in each photo
-
-# 1) drag this into the terminal 
-# 2) press ENTER 
-# 3) drag requested files into the Terminal 
+# Script: add_recipes.sh
+# Description: Adds film recipes to photos' exif metadata
+# Either type in the Terminal: ./add_recipes.sh
+# or drag this file into the Terminal and press ENTER
+#   Follow prompts to select input and output 
+# Requirements: exiftool
+# Author: Adrian Gadient
+# Last updated: 2025/12/4
 
 # Options to make script fail fast and avoid subtle bugs
 set -euo pipefail

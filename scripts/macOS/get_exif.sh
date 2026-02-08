@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
+# Script: get_exif.sh
+# Description: Extracts exif metadata and creates csv 
+# Either type in the Terminal:./get_exif.sh
+# or drag this file into the Terminal and press ENTER
+#   Follow prompts to select input and output 
+# Requirements: exiftool
 # Author: Adrian Gadient
 # Last updated: 2025/12/4
-# Creates csv with exif metadata
-
-# Instructions:
-# 1) drag this into the terminal 
-# 2) press ENTER 
-# 3) drag requested files into terminal 
 
 set -euo pipefail
 export LC_ALL=C.UTF-8
