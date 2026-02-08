@@ -1,7 +1,15 @@
+.DS_Store
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+.dockerignore
 debug_output/
 tests/debug_output/
 tests/test_helper/
+
+# Temporary files
+*.tmp
+*_metadata_*.csv
+matched_recipes.csv
+unmatched_jpgs.csv
