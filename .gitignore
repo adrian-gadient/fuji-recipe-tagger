@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 debug_output/
+tests/debug_output/
+tests/test_helper/

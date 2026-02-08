@@ -263,4 +263,5 @@ If you have suggestions for code improvement, please get in touch, too.
 ## AI tools used
 
 Perplexity was used to translate the data wrangling process from `R` to `Bash` / `Shell`, 
-to generate most of the `Bash` / `Shell` code, and to refine the documentation. 
+to generate most of the `Bash` / `Shell` code, and to refine the documentation. To develop the 
+test and implemen them in Docker, I consulted Claude AI. 
