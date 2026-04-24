@@ -275,14 +275,14 @@ EOF
   assert_success
   
   # Verify unmatched file was created
-  assert_file_exist "$OUTPUT_DIR/unmatched_jpgs.csv"
+  assert_file_exist "$OUTPUT_DIR/unmatched_images.csv"
   
   # Verify the non-matching photo is in the unmatched file
-  run grep "PRO36628.JPG" "$OUTPUT_DIR/unmatched_jpgs.csv"
+  run grep "PRO36628.JPG" "$OUTPUT_DIR/unmatched_images.csv"
   assert_success
   
   # Verify the matching photo is NOT in the unmatched file
-  run grep "PRO36627.JPG" "$OUTPUT_DIR/unmatched_jpgs.csv"
+  run grep "PRO36627.JPG" "$OUTPUT_DIR/unmatched_images.csv"
   assert_failure
 }
 
@@ -353,8 +353,69 @@ EOF
   fi
   
   # If unmatched file was created, show it
-  if [ -f "$OUTPUT_DIR/unmatched_jpgs.csv" ]; then
+  if [ -f "$OUTPUT_DIR/unmatched_images.csv" ]; then
     echo "=== Unmatched Images ===" >&3
-    cat "$OUTPUT_DIR/unmatched_jpgs.csv" >&3
+    cat "$OUTPUT_DIR/unmatched_images.csv" >&3
   fi
+}
+
+# ============================================================================
+# TESTS - Command-line options
+# ============================================================================
+# These tests verify the -t, -r, and -o command-line options work correctly,
+# bypassing the interactive prompts.
+
+# ----------------------------------------------------------------------------
+# Test 7: Happy path using command-line options
+# ----------------------------------------------------------------------------
+@test "matches recipes using -t -r -o command-line options" {
+  run bash "$SCRIPT_PATH" -t "$INPUT_DIR/pics_metadata.csv" -r "$INPUT_DIR/recipes.csv" -o "$OUTPUT_DIR"
+
+  assert_success
+  assert_output --partial "✓ All paths valid"
+  assert_file_exist "$OUTPUT_DIR/matched_recipes.csv"
+  assert [ -s "$OUTPUT_DIR/matched_recipes.csv" ]
+
+  run head -n 1 "$OUTPUT_DIR/matched_recipes.csv"
+  assert_output --partial "SourceFile,FileName,filmsim"
+}
+
+# ----------------------------------------------------------------------------
+# Test 8: Fails with invalid option
+# ----------------------------------------------------------------------------
+@test "fails with unknown command-line option" {
+  run bash "$SCRIPT_PATH" -z
+
+  assert_failure
+  assert_output --partial "Unknown option"
+}
+
+# ----------------------------------------------------------------------------
+# Test 9: Fails when -t points to nonexistent file
+# ----------------------------------------------------------------------------
+@test "fails when -t file does not exist" {
+  run bash "$SCRIPT_PATH" -t "/nonexistent/file.csv" -r "$INPUT_DIR/recipes.csv" -o "$OUTPUT_DIR"
+
+  assert_failure
+  assert_output --partial "Tags file not found"
+}
+
+# ----------------------------------------------------------------------------
+# Test 10: Fails when -r points to nonexistent file
+# ----------------------------------------------------------------------------
+@test "fails when -r file does not exist" {
+  run bash "$SCRIPT_PATH" -t "$INPUT_DIR/pics_metadata.csv" -r "/nonexistent/file.csv" -o "$OUTPUT_DIR"
+
+  assert_failure
+  assert_output --partial "Recipes file not found"
+}
+
+# ----------------------------------------------------------------------------
+# Test 11: Mixed mode — only -t provided, rest via stdin
+# ----------------------------------------------------------------------------
+@test "prompts for remaining inputs when only -t is provided" {
+  run bash "$SCRIPT_PATH" -t "$INPUT_DIR/pics_metadata.csv" <<< "$INPUT_DIR/recipes.csv"$'\n'"$OUTPUT_DIR"$'\n'
+
+  assert_success
+  assert_file_exist "$OUTPUT_DIR/matched_recipes.csv"
 }

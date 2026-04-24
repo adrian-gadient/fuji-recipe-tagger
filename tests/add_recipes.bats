@@ -295,3 +295,113 @@ EOF
   local keywords=$(get_image_keywords "$test_image")
   [[ "$keywords" == *"WithFilename"* ]]
 }
+
+# ============================================================================
+# TESTS - Command-line options
+# ============================================================================
+# These tests verify the -i and -s command-line options work correctly.
+
+# ----------------------------------------------------------------------------
+# Test 8: Happy path using -i command-line option
+# ----------------------------------------------------------------------------
+@test "adds keyword using -i command-line option" {
+  if [ "$JPG_COUNT" -eq 0 ]; then
+    skip "No test images available"
+  fi
+
+  local test_image=$(get_test_image)
+  assert [ -n "$test_image" ]
+
+  cat > "$INPUT_DIR/matched_recipes.csv" << EOF
+SourceFile,FileName,filmsim
+$test_image,$(basename "$test_image"),CLITest
+EOF
+
+  run bash "$SCRIPT_PATH" -i "$INPUT_DIR/matched_recipes.csv"
+
+  assert_success
+  assert_output --partial "✓ Keywords updated successfully"
+
+  local keywords=$(get_image_keywords "$test_image")
+  [[ "$keywords" == *"CLITest"* ]]
+}
+
+# ----------------------------------------------------------------------------
+# Test 9: Fails with invalid option
+# ----------------------------------------------------------------------------
+@test "fails with unknown command-line option" {
+  run bash "$SCRIPT_PATH" -z
+
+  assert_failure
+  assert_output --partial "Unknown option"
+}
+
+# ----------------------------------------------------------------------------
+# Test 10: Fails when -i points to nonexistent file
+# ----------------------------------------------------------------------------
+@test "fails when -i file does not exist" {
+  run bash "$SCRIPT_PATH" -i "/nonexistent/file.csv"
+
+  assert_failure
+  assert_output --partial "ERROR: CSV file path is empty or not a file"
+}
+
+# ----------------------------------------------------------------------------
+# Test 11: -s flag enables hierarchical subjects
+# ----------------------------------------------------------------------------
+@test "writes XMP-lr:HierarchicalSubject when -s is used" {
+  if [ "$JPG_COUNT" -eq 0 ]; then
+    skip "No test images available"
+  fi
+
+  local test_image=$(get_test_image)
+  assert [ -n "$test_image" ]
+
+  cat > "$INPUT_DIR/matched_recipes.csv" << EOF
+SourceFile,FileName,filmsim
+$test_image,$(basename "$test_image"),HierTest
+EOF
+
+  run bash "$SCRIPT_PATH" -i "$INPUT_DIR/matched_recipes.csv" -s
+
+  assert_success
+  assert_output --partial "Hierarchical subjects: enabled (XMP-lr)"
+  assert_output --partial "✓ Keywords updated successfully"
+
+  # Verify flat keyword was added
+  local keywords=$(get_image_keywords "$test_image")
+  [[ "$keywords" == *"HierTest"* ]]
+
+  # Verify hierarchical subject was written
+  local hier_subject=$(exiftool -XMP-lr:HierarchicalSubject -s3 "$test_image" 2>/dev/null || echo "")
+  [[ "$hier_subject" == *"FilmSim|HierTest"* ]]
+}
+
+# ----------------------------------------------------------------------------
+# Test 12: Without -s flag, no hierarchical subject is written
+# ----------------------------------------------------------------------------
+@test "does not write HierarchicalSubject without -s flag" {
+  if [ "$JPG_COUNT" -eq 0 ]; then
+    skip "No test images available"
+  fi
+
+  local test_image=$(get_test_image)
+  assert [ -n "$test_image" ]
+
+  # Clear any existing HierarchicalSubject from previous tests
+  exiftool -overwrite_original '-XMP-lr:HierarchicalSubject=' "$test_image" 2>/dev/null || true
+
+  cat > "$INPUT_DIR/matched_recipes.csv" << EOF
+SourceFile,FileName,filmsim
+$test_image,$(basename "$test_image"),NoHierTest
+EOF
+
+  run bash "$SCRIPT_PATH" -i "$INPUT_DIR/matched_recipes.csv"
+
+  assert_success
+  refute_output --partial "Hierarchical subjects: enabled"
+
+  # Verify hierarchical subject was NOT written
+  local hier_subject=$(exiftool -XMP-lr:HierarchicalSubject -s3 "$test_image" 2>/dev/null || echo "")
+  [[ -z "$hier_subject" || "$hier_subject" != *"FilmSim|NoHierTest"* ]]
+}
