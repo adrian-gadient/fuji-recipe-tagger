@@ -195,9 +195,9 @@ teardown() {
 # Test that script detects permission issues before attempting to write.
 # This prevents cryptic errors later during CSV file creation.
 @test "fails when output dir is not writable" {
-  if [ -f /.dockerenv ]; then
-  skip "Permission test unreliable in Docker (runs as root)"
-fi
+  if [ "$(id -u)" -eq 0 ]; then
+    skip "Permission test unreliable when running as root"
+  fi
 
   # Create a directory but remove write permissions
   local readonly_dir="$TEST_ROOT/readonly"
