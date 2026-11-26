@@ -196,9 +196,9 @@ of the photos to your list of recipes and creates two files:
 
 - `matched_recipes.csv` includes the path to and name of pictures with a
   matching recipe in your list.  
-- `unmatched_jpgs.csv` features images from your input file that cannot
-  be matched. This file is helpful to find incomplete or incorrect
-  entries in the recipes file.
+- `unmatched_images.csv` features images from your input file that
+  cannot be matched. This file is helpful to find incomplete or
+  incorrect entries in the recipes file.
 
 The outcome will look something like this:
 
@@ -221,6 +221,11 @@ In contrast to the Fuji specific metadata (e.g., Sharpness), the
 (incl. Lightroom). It even appears in Mac’s Finder when you click on
 “Get Info” (or Command + i).
 
+Supported formats are JPG/JPEG and HEIC/HEIF/HIF. The recipe is written
+to “Keywords” (IPTC) and to “Subject” (XMP). HEIC files cannot store
+IPTC Keywords, so for them only XMP “Subject” is written; Lightroom and
+Apple Photos read both.
+
 ## Example Usage
 
 ### Complete Workflow Example
@@ -238,6 +243,28 @@ In contrast to the Fuji specific metadata (e.g., Sharpness), the
 ./scripts/macOS/add_recipes.sh
 # Drag: matched_recipes.csv
 ```
+
+### Using command-line options instead of drag and drop
+
+Every path can also be given as an option, which is handy for scripting.
+Anything you leave out is asked for interactively, as before. (Note that
+this option may only work on Linux).
+
+``` bash
+./scripts/macOS/get_exif.sh -i ~/Pictures/2024 -o ~/fuji-out
+./scripts/macOS/identify_recipes.sh -t ~/fuji-out/pics_metadata_*.csv -r recipes.csv -o ~/fuji-out
+./scripts/macOS/add_recipes.sh -i ~/fuji-out/matched_recipes.csv -s
+```
+
+| Script | Option | Meaning |
+|:---|:---|:---|
+| `get_exif.sh` | `-i` | folder with photos |
+|  | `-o` | folder for the output CSV |
+| `identify_recipes.sh` | `-t` | metadata CSV from `get_exif.sh` |
+|  | `-r` | your recipes CSV |
+|  | `-o` | folder for the output CSVs |
+| `add_recipes.sh` | `-i` | `matched_recipes.csv` |
+|  | `-s` | also write a Lightroom keyword hierarchy (FilmSim → recipe) |
 
 ## Bonus: Add FilmMode to keywords
 
