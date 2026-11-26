@@ -2,9 +2,9 @@
 
 # Script: identify_recipes.sh
 # Description: Identifies film recipes based on the metadata of photos
-# Either type in the Terminal: ./identify_recipes.sh
-# or drag this file into the Terminal and press ENTER
-#   Follow prompts to select input directory and output location
+# Usage: ./identify_recipes.sh [-t metadata_csv] [-r recipes_csv] [-o output_folder]
+#   With options: paths are taken from the command line
+#   Without options: interactive prompts (drag files/folders into Terminal)
 # Requirements: Miller
 # Author: Adrian Gadient
 # Last updated: 2025/12/4
@@ -32,15 +32,39 @@ fi
 echo "✓ Miller found"
 echo ""
 
-# Prompt user for input/output paths -------------------------------------------------------
-echo -e "Drag the csv file containing your picture\'s \033[1;32mMETADATA\033[0m into the Terminal, then press [ENTER] "
-read -r tags
+# Parse command-line options ---------------------------------------------------------------
+tags=""
+recipes=""
+folder_path=""
 
-echo -e "Drag the csv file containing your \033[1;32mRECIPES\033[0m into the Terminal, then press [ENTER] " recipes
-read -r recipes
+while getopts ":t:r:o:" opt; do
+  case $opt in
+    t) tags="$OPTARG" ;;
+    r) recipes="$OPTARG" ;;
+    o) folder_path="$OPTARG" ;;
+    \?) echo -e "\033[31mERROR: Unknown option -$OPTARG\033[0m" >&2
+        echo "Usage: $0 [-t metadata_csv] [-r recipes_csv] [-o output_folder]" >&2
+        exit 1 ;;
+    :)  echo -e "\033[31mERROR: Option -$OPTARG requires an argument\033[0m" >&2
+        exit 1 ;;
+  esac
+done
 
-echo -e "Drag the folder \033[1;32mpath for the output\033[0m (csv with picture + matching recipe) into the Terminal, then press [ENTER] " folder_path
-read -r folder_path
+# Fall back to interactive prompts if not provided via options -----------------------------
+if [[ -z "$tags" ]]; then
+  echo -e "Drag the csv file containing your picture\'s \033[1;32mMETADATA\033[0m into the Terminal, then press [ENTER] "
+  read -r tags
+fi
+
+if [[ -z "$recipes" ]]; then
+  echo -e "Drag the csv file containing your \033[1;32mRECIPES\033[0m into the Terminal, then press [ENTER] "
+  read -r recipes
+fi
+
+if [[ -z "$folder_path" ]]; then
+  echo -e "Drag the folder \033[1;32mpath for the output\033[0m (csv with picture + matching recipe) into the Terminal, then press [ENTER] "
+  read -r folder_path
+fi
 
 # Prepare processing -----------------------------------------------------------------------
 
@@ -253,13 +277,13 @@ fi
 
 # 8) Final status message --------------------------------------------------------
 if [ -f "$output_csv" ]; then
-  echo -e "\033[32mList of matched jpgs saved to:\033[0m $output_csv"
+  echo -e "\033[32mList of matched images saved to:\033[0m $output_csv"
 else
   echo -e "\033[31mFailed to create output file.\033[0m"
 fi
 
 # 9) Find missing FileName entries (only create file if unmatched exist)
-missing_jpgs_csv="$folder_path/unmatched_jpgs.csv"
+missing_jpgs_csv="$folder_path/unmatched_images.csv"
 
 # Extract unique FileNames from output (matched) and tags (all)
 run_miller --csv cut -f FileName "$output_csv" | tail -n +2 | sort -u > "$tmpdir/output_fns.txt" 2>/dev/null || true
@@ -274,6 +298,6 @@ missing_count=$(wc -l < "$tmpdir/missing.txt")
 if [ "$missing_count" -gt 0 ]; then
   echo "FileName" > "$missing_jpgs_csv"
   cat "$tmpdir/missing.txt" >> "$missing_jpgs_csv"
-  echo -e "\033[31mList of unmatched jpgs saved to:\033[0m $missing_jpgs_csv"
+  echo -e "\033[31mList of unmatched images saved to:\033[0m $missing_jpgs_csv"
   echo ""
 fi

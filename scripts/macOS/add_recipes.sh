@@ -2,9 +2,10 @@
 
 # Script: add_recipes.sh
 # Description: Adds film recipes to photos' exif metadata
-# Either type in the Terminal: ./add_recipes.sh
-# or drag this file into the Terminal and press ENTER
-#   Follow prompts to select input and output 
+# Usage: ./add_recipes.sh [-i csv_file] [-s]
+#   -i csv_file : path to the matched recipes CSV
+#   -s          : also write XMP-lr:HierarchicalSubject (Lightroom hierarchy)
+#   Without options: interactive prompt (drag file into Terminal)
 # Requirements: exiftool
 # Author: Adrian Gadient
 # Last updated: 2025/12/4
@@ -12,7 +13,30 @@
 # Options to make script fail fast and avoid subtle bugs
 set -euo pipefail
 
-read -p $'Drag \033[1;32mcsv file with file paths and recipes\033[0m into the Terminal (typically 'matched_recipes.csv'), then press [ENTER] ' csv_path
+# Parse command-line options
+csv_path=""
+hierarchical=false
+
+while getopts ":i:s" opt; do
+  case $opt in
+    i) csv_path="$OPTARG" ;;
+    s) hierarchical=true ;;
+    \?) echo -e "\033[31mERROR: Unknown option -$OPTARG\033[0m" >&2
+        echo "Usage: $0 [-i csv_file] [-s]" >&2
+        exit 1 ;;
+    :)  echo -e "\033[31mERROR: Option -$OPTARG requires an argument\033[0m" >&2
+        exit 1 ;;
+  esac
+done
+
+if $hierarchical; then
+  echo -e "\033[33mHierarchical subjects: enabled (XMP-lr)\033[0m"
+fi
+
+# Fall back to interactive prompt if not provided via option
+if [[ -z "$csv_path" ]]; then
+  read -p $'Drag \033[1;32mcsv file with file paths and recipes\033[0m into the Terminal (typically \'matched_recipes.csv\'), then press [ENTER] ' csv_path
+fi
 
 csv_path=${csv_path#\"}; csv_path=${csv_path%\"}  # remove quotes if any
 
@@ -29,6 +53,7 @@ echo "Available columns: $available_cols"
 
 # Extract only SourceFile and filmsim columns (handles FileName presence)
 clean_csv=$(mktemp)
+trap 'rm -f "$clean_csv"' EXIT   # always delete temp file, even on error
 mlr --csv cut -f SourceFile,filmsim "$csv_path" > "$clean_csv"
 
 echo "✓ Using columns: SourceFile, filmsim"
@@ -38,10 +63,18 @@ echo "Processing $(mlr --csv count "$clean_csv" | tail -n1) rows..."
 while IFS=, read -r file filmsim; do
   # Skip header and ensure columns are not empty
   [[ "$file" = "SourceFile" || -z "$file" || -z "$filmsim" ]] && continue
-  if ! exiftool -overwrite_original -keywords-="$filmsim" -keywords+="$filmsim" "$file"; then
+  # IPTC Keywords (JPG) + XMP Subject (JPG and HEIC; IPTC cannot be written to HEIC).
+  # "-=" before "+=" prevents duplicates when the script is run again.
+  exiftool_args=(-overwrite_original
+    -keywords-="$filmsim" -keywords+="$filmsim"
+    -XMP-dc:Subject-="$filmsim" -XMP-dc:Subject+="$filmsim")
+  if $hierarchical; then
+    exiftool_args+=("-XMP-lr:HierarchicalSubject-=FilmSim|$filmsim"
+                    "-XMP-lr:HierarchicalSubject+=FilmSim|$filmsim")
+  fi
+  if ! exiftool "${exiftool_args[@]}" "$file"; then
     echo -e "\033[31mFailed to update keywords for file: $file\033[0m" >&2
   fi
 done < "$clean_csv"
 
-rm "$clean_csv"
 echo -e "\033[32m✓ Keywords updated successfully!\033[0m"

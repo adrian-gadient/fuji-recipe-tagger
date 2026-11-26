@@ -2,7 +2,7 @@
 
 # Author: Adrian Gadient
 # Last updated: 2025/12/12
-# This script copies the content of FilmMode tag to Keywords for JPG files only in a selected folder
+# This script copies the content of FilmMode tag to Keywords for supported image files in a selected folder
 
 # Check if exiftool is installed
 if ! command -v exiftool &> /dev/null; then
@@ -20,28 +20,34 @@ if [[ ! -d "$folder" ]]; then
     exit 1
 fi
 
-# Check if folder contains JPG files
-if ! ls "$folder"/*.jpg "$folder"/*.JPG "$folder"/*.jpeg "$folder"/*.JPEG 2>/dev/null | head -1 | grep -q .; then
-    echo "❌ Error: No JPG files (.jpg, .JPG, .jpeg, .JPEG) found in folder."
+# Check if folder contains supported image files
+if ! ls "$folder"/*.jpg "$folder"/*.JPG "$folder"/*.jpeg "$folder"/*.JPEG "$folder"/*.heic "$folder"/*.HEIC "$folder"/*.heif "$folder"/*.HEIF "$folder"/*.hif "$folder"/*.HIF 2>/dev/null | head -1 | grep -q .; then
+    echo "❌ Error: No supported image files (JPG/JPEG/HEIC/HEIF/HIF) found in folder."
     exit 1
 fi
 
-# 2) Show preview of JPG files with FilmMode tags
+# 2) Show preview of image files with FilmMode tags
 echo
 echo "Folder: $folder"
-echo "Previewing JPG files with FilmMode tags:"
-exiftool -FilmMode -n "$folder"/*.jpg "$folder"/*.JPG "$folder"/*.jpeg "$folder"/*.JPEG 2>/dev/null | head -10
+echo "Previewing image files with FilmMode tags:"
+exiftool -FilmMode -n "$folder"/*.jpg "$folder"/*.JPG "$folder"/*.jpeg "$folder"/*.JPEG "$folder"/*.heic "$folder"/*.HEIC "$folder"/*.heif "$folder"/*.HEIF "$folder"/*.hif "$folder"/*.HIF 2>/dev/null | head -10
 echo
 
 # 3) Confirm with user before modifying files
-read -p $'You are about to \033[1;31mPERMANENTLY modify EXIF metadata\033[0m in ALL JPG files in this folder. Continue? [y/N]: ' confirm
+read -p $'You are about to \033[1;31mPERMANENTLY modify EXIF metadata\033[0m in ALL image files in this folder. Continue? [y/N]: ' confirm
 
 case "$confirm" in
     [yY]|[yY][eE][sS])
-        echo "✅ Running exiftool on JPG files only..."
-        exiftool -overwrite_original '-keywords+<FilmMode' '-keywords<${keywords;NoDups}' \
-                 -ext jpg -ext jpeg -r "$folder"
-        echo "✅ Done! Created backup files with _original suffix."
+        echo "✅ Running exiftool on image files..."
+        exts=(-ext jpg -ext jpeg -ext heic -ext heif -ext hif)
+        # Pass 1: append FilmMode to IPTC Keywords (JPG) and XMP Subject (JPG + HEIC)
+        exiftool -overwrite_original '-keywords+<FilmMode' '-XMP-dc:Subject+<FilmMode' \
+                 "${exts[@]}" -r "$folder"
+        # Pass 2: remove duplicates (keeps existing keywords)
+        exiftool -overwrite_original -sep '##' \
+                 '-keywords<${keywords;NoDups}' '-XMP-dc:Subject<${XMP-dc:Subject;NoDups}' \
+                 "${exts[@]}" -r "$folder"
+        echo "✅ Done!"
         ;;
     *)
         echo "❌ Aborted. No files were changed."

@@ -158,7 +158,7 @@ teardown() {
   
   # Should fail because there's nothing to process
   assert_failure
-  assert_output --partial "No JPG"
+  assert_output --partial "No supported image files"
 }
 
 # ----------------------------------------------------------------------------
@@ -195,9 +195,9 @@ teardown() {
 # Test that script detects permission issues before attempting to write.
 # This prevents cryptic errors later during CSV file creation.
 @test "fails when output dir is not writable" {
-  if [ -f /.dockerenv ]; then
-  skip "Permission test unreliable in Docker (runs as root)"
-fi
+  if [ "$(id -u)" -eq 0 ]; then
+    skip "Permission test unreliable when running as root"
+  fi
 
   # Create a directory but remove write permissions
   local readonly_dir="$TEST_ROOT/readonly"
@@ -243,7 +243,7 @@ fi
   
   # Check that script printed expected progress messages
   # These messages indicate the script is working through its workflow
-  assert_output --partial "JPG/JPEG files to process"
+  assert_output --partial "image files to process"
   assert_output --partial "Starting EXIF extraction"
   assert_output --partial "Exif metadata extraction succeeded"
   assert_output --partial "Output saved here"
@@ -343,4 +343,75 @@ fi
   # -E enables extended regex, allowing | (OR) operator
   run grep -iE "X-Pro|X-T|X-H" "$csv_file"
   assert_success  # Should find at least one X-series model name
+}
+
+# ============================================================================
+# TESTS - Command-line options
+# ============================================================================
+# These tests verify the -i and -o command-line options work correctly,
+# bypassing the interactive prompts.
+
+# ----------------------------------------------------------------------------
+# Test 10: Happy path using command-line options
+# ----------------------------------------------------------------------------
+# Verifies that passing -i and -o flags works the same as interactive input.
+@test "processes JPGs using -i and -o command-line options" {
+  if [ "$JPG_COUNT" -eq 0 ]; then
+    skip "No JPG files found in testdata"
+  fi
+
+  run bash "$SCRIPT_PATH" -i "$INPUT_DIR" -o "$OUTPUT_DIR"
+
+  assert_success
+  assert_output --partial "Starting EXIF extraction"
+  assert_output --partial "Exif metadata extraction succeeded"
+
+  local csv_file
+  csv_file="$(find "$OUTPUT_DIR" -name "pics_metadata_*.csv" -print -quit)"
+  assert [ -n "$csv_file" ]
+  assert [ -s "$csv_file" ]
+}
+
+# ----------------------------------------------------------------------------
+# Test 11: Fails with invalid option
+# ----------------------------------------------------------------------------
+@test "fails with unknown command-line option" {
+  run bash "$SCRIPT_PATH" -z
+
+  assert_failure
+  assert_output --partial "Unknown option"
+}
+
+# ----------------------------------------------------------------------------
+# Test 12: Fails when -i points to nonexistent directory
+# ----------------------------------------------------------------------------
+@test "fails when -i path does not exist" {
+  run bash "$SCRIPT_PATH" -i "/nonexistent/path" -o "$OUTPUT_DIR"
+
+  assert_failure
+  assert_output --partial "Input path"
+}
+
+# ----------------------------------------------------------------------------
+# Test 13: Fails when -o points to nonexistent directory
+# ----------------------------------------------------------------------------
+@test "fails when -o path does not exist" {
+  run bash "$SCRIPT_PATH" -i "$INPUT_DIR" -o "/nonexistent/path"
+
+  assert_failure
+  assert_output --partial "Destination folder"
+}
+
+# ----------------------------------------------------------------------------
+# Test 14: Mixed mode — only -i provided, -o via stdin
+# ----------------------------------------------------------------------------
+@test "prompts for output when only -i is provided" {
+  if [ "$JPG_COUNT" -eq 0 ]; then
+    skip "No JPG files found in testdata"
+  fi
+
+  run bash "$SCRIPT_PATH" -i "$INPUT_DIR" <<< "$OUTPUT_DIR"
+
+  assert_success
+  assert_output --partial "Exif metadata extraction succeeded"
 }
