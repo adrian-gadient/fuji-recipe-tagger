@@ -61,7 +61,7 @@ setup() {
   # We don't want to modify the original test images
   if [ -d "$TESTDATA_DIR" ]; then
     # Copy all JPG files from testdata to working directory
-    find "$TESTDATA_DIR" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" \) -exec cp {} "$WORK_DIR/" \;
+    find "$TESTDATA_DIR" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.heic" -o -iname "*.heif" -o -iname "*.hif" \) -exec cp {} "$WORK_DIR/" \;
   fi
   
   # Verify required tools are installed
@@ -109,6 +109,11 @@ teardown() {
 # Get the first JPG file in the working directory
 get_test_image() {
   find "$WORK_DIR" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" \) -print -quit
+}
+
+# Get path to the HEIC test image (empty if none)
+get_test_heic() {
+  find "$WORK_DIR" -maxdepth 1 -type f \( -iname "*.heic" -o -iname "*.heif" \) -print -quit
 }
 
 # Read Keywords field from an image using exiftool
@@ -404,4 +409,79 @@ EOF
   # Verify hierarchical subject was NOT written
   local hier_subject=$(exiftool -XMP-lr:HierarchicalSubject -s3 "$test_image" 2>/dev/null || echo "")
   [[ -z "$hier_subject" || "$hier_subject" != *"FilmSim|NoHierTest"* ]]
+}
+
+# ============================================================================
+# TESTS - HEIC support and repeated runs
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Test 13: HEIC files get the recipe in XMP Subject
+# ----------------------------------------------------------------------------
+# IPTC Keywords cannot be stored in HEIC, so XMP-dc:Subject must be written.
+@test "writes XMP Subject to HEIC files" {
+  local test_heic=$(get_test_heic)
+  if [ -z "$test_heic" ]; then
+    skip "No HEIC test image available"
+  fi
+
+  cat > "$INPUT_DIR/matched_recipes.csv" << EOF
+SourceFile,FileName,filmsim
+$test_heic,$(basename "$test_heic"),HeicTest
+EOF
+
+  run bash "$SCRIPT_PATH" -i "$INPUT_DIR/matched_recipes.csv" -s
+
+  assert_success
+  local subject=$(exiftool -XMP-dc:Subject -s3 "$test_heic" 2>/dev/null || echo "")
+  [[ "$subject" == *"HeicTest"* ]]
+  local hier=$(exiftool -XMP-lr:HierarchicalSubject -s3 "$test_heic" 2>/dev/null || echo "")
+  [[ "$hier" == *"FilmSim|HeicTest"* ]]
+}
+
+# ----------------------------------------------------------------------------
+# Test 14: Running twice does not create duplicate entries
+# ----------------------------------------------------------------------------
+@test "running twice with -s does not duplicate tags" {
+  local test_image=$(get_test_image)
+  assert [ -n "$test_image" ]
+
+  cat > "$INPUT_DIR/matched_recipes.csv" << EOF
+SourceFile,FileName,filmsim
+$test_image,$(basename "$test_image"),DupTest
+EOF
+
+  run bash "$SCRIPT_PATH" -i "$INPUT_DIR/matched_recipes.csv" -s
+  assert_success
+  run bash "$SCRIPT_PATH" -i "$INPUT_DIR/matched_recipes.csv" -s
+  assert_success
+
+  # -sep prints one list entry per line so we can count them
+  local n_kw=$(exiftool -sep $'\n' -Keywords -s3 "$test_image" | grep -c '^DupTest$')
+  local n_subj=$(exiftool -sep $'\n' -XMP-dc:Subject -s3 "$test_image" | grep -c '^DupTest$')
+  local n_hier=$(exiftool -sep $'\n' -XMP-lr:HierarchicalSubject -s3 "$test_image" | grep -c '^FilmSim|DupTest$')
+  assert_equal "$n_kw" "1"
+  assert_equal "$n_subj" "1"
+  assert_equal "$n_hier" "1"
+}
+
+# ----------------------------------------------------------------------------
+# Test 15: No temp files are left behind
+# ----------------------------------------------------------------------------
+@test "does not leave temporary CSV files behind" {
+  local test_image=$(get_test_image)
+  assert [ -n "$test_image" ]
+
+  cat > "$INPUT_DIR/matched_recipes.csv" << EOF
+SourceFile,FileName,filmsim
+$test_image,$(basename "$test_image"),TmpTest
+EOF
+
+  # Point mktemp at an empty folder so we can check it afterwards
+  local tmpcheck="$TEST_ROOT/tmpcheck"
+  mkdir -p "$tmpcheck"
+  TMPDIR="$tmpcheck" run bash "$SCRIPT_PATH" -i "$INPUT_DIR/matched_recipes.csv"
+
+  assert_success
+  assert_equal "$(ls -A "$tmpcheck" | wc -l | tr -d ' ')" "0"
 }
