@@ -21,8 +21,8 @@ if [[ ! -d "$folder" ]]; then
 fi
 
 # Check if folder contains supported image files
-if ! ls "$folder"/*.jpg "$folder"/*.JPG "$folder"/*.jpeg "$folder"/*.JPEG "$folder"/*.heic "$folder"/*.HEIC "$folder"/*.heif "$folder"/*.HEIF 2>/dev/null | head -1 | grep -q .; then
-    echo "❌ Error: No supported image files (JPG/JPEG/HEIC/HEIF) found in folder."
+if ! ls "$folder"/*.jpg "$folder"/*.JPG "$folder"/*.jpeg "$folder"/*.JPEG "$folder"/*.heic "$folder"/*.HEIC "$folder"/*.heif "$folder"/*.HEIF "$folder"/*.hif "$folder"/*.HIF 2>/dev/null | head -1 | grep -q .; then
+    echo "❌ Error: No supported image files (JPG/JPEG/HEIC/HEIF/HIF) found in folder."
     exit 1
 fi
 
@@ -30,7 +30,7 @@ fi
 echo
 echo "Folder: $folder"
 echo "Previewing image files with FilmMode tags:"
-exiftool -FilmMode -n "$folder"/*.jpg "$folder"/*.JPG "$folder"/*.jpeg "$folder"/*.JPEG "$folder"/*.heic "$folder"/*.HEIC "$folder"/*.heif "$folder"/*.HEIF 2>/dev/null | head -10
+exiftool -FilmMode -n "$folder"/*.jpg "$folder"/*.JPG "$folder"/*.jpeg "$folder"/*.JPEG "$folder"/*.heic "$folder"/*.HEIC "$folder"/*.heif "$folder"/*.HEIF "$folder"/*.hif "$folder"/*.HIF 2>/dev/null | head -10
 echo
 
 # 3) Confirm with user before modifying files
@@ -39,9 +39,15 @@ read -p $'You are about to \033[1;31mPERMANENTLY modify EXIF metadata\033[0m in 
 case "$confirm" in
     [yY]|[yY][eE][sS])
         echo "✅ Running exiftool on image files..."
-        exiftool -overwrite_original '-keywords+<FilmMode' '-keywords<${keywords;NoDups}' \
-                 -ext jpg -ext jpeg -ext heic -ext heif -r "$folder"
-        echo "✅ Done! Created backup files with _original suffix."
+        exts=(-ext jpg -ext jpeg -ext heic -ext heif -ext hif)
+        # Pass 1: append FilmMode to IPTC Keywords (JPG) and XMP Subject (JPG + HEIC)
+        exiftool -overwrite_original '-keywords+<FilmMode' '-XMP-dc:Subject+<FilmMode' \
+                 "${exts[@]}" -r "$folder"
+        # Pass 2: remove duplicates (keeps existing keywords)
+        exiftool -overwrite_original -sep '##' \
+                 '-keywords<${keywords;NoDups}' '-XMP-dc:Subject<${XMP-dc:Subject;NoDups}' \
+                 "${exts[@]}" -r "$folder"
+        echo "✅ Done!"
         ;;
     *)
         echo "❌ Aborted. No files were changed."
