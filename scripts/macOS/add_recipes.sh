@@ -53,7 +53,7 @@ echo "Available columns: $available_cols"
 
 # Extract only SourceFile and filmsim columns (handles FileName presence)
 clean_csv=$(mktemp)
-echo $clean_csv
+trap 'rm -f "$clean_csv"' EXIT   # always delete temp file, even on error
 mlr --csv cut -f SourceFile,filmsim "$csv_path" > "$clean_csv"
 
 echo "✓ Using columns: SourceFile, filmsim"
@@ -63,15 +63,18 @@ echo "Processing $(mlr --csv count "$clean_csv" | tail -n1) rows..."
 while IFS=, read -r file filmsim; do
   # Skip header and ensure columns are not empty
   [[ "$file" = "SourceFile" || -z "$file" || -z "$filmsim" ]] && continue
-  exiftool_args=(-overwrite_original -keywords-="$filmsim" -keywords+="$filmsim")
+  # IPTC Keywords (JPG) + XMP Subject (JPG and HEIC; IPTC cannot be written to HEIC).
+  # "-=" before "+=" prevents duplicates when the script is run again.
+  exiftool_args=(-overwrite_original
+    -keywords-="$filmsim" -keywords+="$filmsim"
+    -XMP-dc:Subject-="$filmsim" -XMP-dc:Subject+="$filmsim")
   if $hierarchical; then
-    exiftool_args+=("-XMP-lr:HierarchicalSubject+=FilmSim|$filmsim")
+    exiftool_args+=("-XMP-lr:HierarchicalSubject-=FilmSim|$filmsim"
+                    "-XMP-lr:HierarchicalSubject+=FilmSim|$filmsim")
   fi
-  echo -e "exiftool ${exiftool_args[@]}"
   if ! exiftool "${exiftool_args[@]}" "$file"; then
     echo -e "\033[31mFailed to update keywords for file: $file\033[0m" >&2
   fi
 done < "$clean_csv"
 
-#rm "$clean_csv"
 echo -e "\033[32m✓ Keywords updated successfully!\033[0m"
