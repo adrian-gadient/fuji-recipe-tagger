@@ -419,3 +419,110 @@ EOF
   assert_success
   assert_file_exist "$OUTPUT_DIR/matched_recipes.csv"
 }
+# ============================================================================
+# Path handling: dragged, pasted and typed paths with awkward names
+# ============================================================================
+# Regression tests for GitHub issue #5. macOS allows almost any character in a
+# name (leading/trailing spaces, quotes, $, backslashes, emoji...). Terminal.app
+# does not quote dropped paths: it backslash-escapes special characters and
+# appends one unescaped space. terminal_escape reproduces that.
+
+terminal_escape() {
+  local s="$1" out="" c i
+  for (( i=0; i<${#s}; i++ )); do
+    c="${s:i:1}"
+    case "$c" in
+      [\ \!\"\#\$\&\'\(\)\*\;\<\>\?\[\\\]\^\`\{\|\}\~]|$'\t') out+="\\$c" ;;
+      *) out+="$c" ;;
+    esac
+  done
+  printf '%s' "$out"
+}
+
+awkward_names=(
+  " ohhh. my "
+  "trailing space "
+  " leading space"
+  "  double  spaces  "
+  "it's (Fuji) & co; [v2]"
+  "dollar \$HOME \`tick\` !bang #hash"
+  "back\\slash"
+  "quote\"d"
+  "star*question?"
+  "percent %20 and tilde~"
+  "-dash first"
+  "café 📷 写真"
+)
+
+# Run the script for one folder name in one input style; print the reason on failure
+run_awkward_case() {  # <name> <style: escaped|double|single|raw>
+  local name="$1" style="$2" in_dir out_dir meta recs outd output
+  in_dir="$TEST_ROOT/in/$name"; out_dir="$TEST_ROOT/out/$name"
+  mkdir -p "$in_dir" "$out_dir"
+  cp "$INPUT_DIR/pics_metadata.csv" "$INPUT_DIR/recipes.csv" "$in_dir/"
+  rm -f "$out_dir/matched_recipes.csv"
+  case "$style" in
+    escaped) meta="$(terminal_escape "$in_dir/pics_metadata.csv") "
+             recs="$(terminal_escape "$in_dir/recipes.csv") "
+             outd="$(terminal_escape "$out_dir") " ;;
+    double)  meta="\"$in_dir/pics_metadata.csv\""; recs="\"$in_dir/recipes.csv\""; outd="\"$out_dir\"" ;;
+    single)  meta="'$in_dir/pics_metadata.csv'";   recs="'$in_dir/recipes.csv'";   outd="'$out_dir'" ;;
+    raw)     meta="$in_dir/pics_metadata.csv";     recs="$in_dir/recipes.csv";     outd="$out_dir" ;;
+  esac
+  output=$(printf '%s\n%s\n%s\n' "$meta" "$recs" "$outd" | bash "$SCRIPT_PATH" 2>&1) || {
+    printf 'FAILED [%s] name="%s"\n%s\n' "$style" "$name" "$output"; return 1; }
+  [ -f "$out_dir/matched_recipes.csv" ] || {
+    printf 'NO OUTPUT [%s] name="%s"\n%s\n' "$style" "$name" "$output"; return 1; }
+}
+
+@test "awkward folder names: backslash-escaped (macOS Terminal drag-and-drop)" {
+  for name in "${awkward_names[@]}"; do run_awkward_case "$name" escaped; done
+}
+
+@test "awkward folder names: double-quoted paths" {
+  for name in "${awkward_names[@]}"; do
+    case "$name" in *\\*|*\"*) continue ;; esac   # would need escaping inside "..."
+    run_awkward_case "$name" double
+  done
+}
+
+@test "awkward folder names: single-quoted paths" {
+  for name in "${awkward_names[@]}"; do
+    case "$name" in *\\*|*\'*) continue ;; esac   # would need escaping inside '...'
+    run_awkward_case "$name" single
+  done
+}
+
+@test "awkward folder names: typed or pasted without quoting" {
+  # Unquoted spaces at the very start/end of a typed path can't be told apart
+  # from accidental whitespace, so only names without them are tested here.
+  for name in "it's (Fuji) & co; [v2]" "back\\slash" "quote\"d" "café 📷 写真" "inner  spaces"; do
+    run_awkward_case "$name" raw
+  done
+}
+
+@test "awkward folder names: -t -r -o command-line options" {
+  for name in "${awkward_names[@]}"; do
+    mkdir -p "$TEST_ROOT/cli/$name"
+    cp "$INPUT_DIR/pics_metadata.csv" "$TEST_ROOT/cli/$name/"
+    run bash "$SCRIPT_PATH" -t "$TEST_ROOT/cli/$name/pics_metadata.csv" -r "$INPUT_DIR/recipes.csv" -o "$TEST_ROOT/cli/$name"
+    assert_success
+    assert_file_exist "$TEST_ROOT/cli/$name/matched_recipes.csv"
+  done
+}
+
+@test "accepts ~ for the home folder" {
+  HOME="$TEST_ROOT/home dir"; mkdir -p "$HOME/out put"
+  cp "$INPUT_DIR/pics_metadata.csv" "$INPUT_DIR/recipes.csv" "$HOME/"
+  run bash "$SCRIPT_PATH" <<< "~/pics_metadata.csv"$'\n'"~/recipes.csv"$'\n'"~/out\\ put "$'\n'
+  assert_success
+  assert_file_exist "$HOME/out put/matched_recipes.csv"
+}
+
+@test "error message shows the path literally, in quotes" {
+  # A path ending in a backslash used to break the colour code in the message
+  run bash "$SCRIPT_PATH" <<< "$INPUT_DIR/pics_metadata.csv"$'\n'"$INPUT_DIR/recipes.csv"$'\n'"$TEST_ROOT/missing folder\\\\"$'\n'
+  assert_failure
+  assert_output --partial "Output folder not found: \"$TEST_ROOT/missing folder\\\""
+  refute_output --partial '\033'
+}
