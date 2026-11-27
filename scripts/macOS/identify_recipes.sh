@@ -7,7 +7,7 @@
 #   Without options: interactive prompts (drag files/folders into Terminal)
 # Requirements: Miller
 # Author: Adrian Gadient
-# Last updated: 2025/12/4
+# Last updated: 2026/11/27
 
 # Options to make script fail fast and avoid subtle bugs
 set -euo pipefail
@@ -17,7 +17,7 @@ set -euo pipefail
 run_miller() {
   local output
   if ! output=$(mlr "$@" 2>&1); then
-    echo -e "\033[31mERROR: Miller command failed: mlr $*\n$output\033[0m" >&2
+    printf '\033[31mERROR: Miller command failed: mlr %s\n%s\033[0m\n' "$*" "$output" >&2
     exit 1
   fi
   echo "$output"
@@ -50,63 +50,70 @@ while getopts ":t:r:o:" opt; do
   esac
 done
 
+# Read a path that was dragged, pasted or typed into the Terminal -------------------------
+# macOS Terminal writes a dropped path in shell syntax: special characters get a
+# backslash ("my\ folder") and one extra space is added at the end.
+read_path() {  # read_path <variable name>
+  local raw p
+  IFS= read -r raw || true                 # the line exactly as entered
+  # 1) Let bash's own `read` undo Terminal's backslash-escaping ("my\ folder" -> "my folder").
+  #    It drops the extra space Terminal adds at the end but keeps escaped spaces.
+  read p <<< "$raw" || true
+  # 2) Strip one pair of surrounding quotes (some terminals quote instead of escaping)
+  case "$p" in \"*\"|\'*\') p="${p:1:${#p}-2}" ;; esac
+  # 3) ~ means the home folder
+  case "$p" in "~") p="$HOME" ;; "~/"*) p="$HOME/${p#\~/}" ;; esac
+  # 4) If that doesn't exist but the line as typed does, use the line as typed
+  if [ ! -e "$p" ] && [ -e "$raw" ]; then p="$raw"; fi
+  printf -v "$1" '%s' "$p"
+}
+
 # Fall back to interactive prompts if not provided via options -----------------------------
 if [[ -z "$tags" ]]; then
   echo -e "Drag the csv file containing your picture\'s \033[1;32mMETADATA\033[0m into the Terminal, then press [ENTER] "
-  read -r tags
+  read_path tags
 fi
 
 if [[ -z "$recipes" ]]; then
   echo -e "Drag the csv file containing your \033[1;32mRECIPES\033[0m into the Terminal, then press [ENTER] "
-  read -r recipes
+  read_path recipes
 fi
 
 if [[ -z "$folder_path" ]]; then
   echo -e "Drag the folder \033[1;32mpath for the output\033[0m (csv with picture + matching recipe) into the Terminal, then press [ENTER] "
-  read -r folder_path
+  read_path folder_path
 fi
 
 # Prepare processing -----------------------------------------------------------------------
-
-# Remove possible leading and trailing quotes
-# (may be added when dragging files into the Terminal)
-## Remove leading double quotes from variable if present
-tags=${tags#\"}; 
-recipes=${recipes#\"}; 
-folder_path=${folder_path#\"}; 
-## Remove trailing double quote if it exists
-tags=${tags%\"};
-recipes=${recipes%\"};
-folder_path=${folder_path%\"}
 
 # Path validation check 
 echo "Validating input paths + files..."
 
 # Check files exist and are readable
 if [[ ! -f "$tags" ]]; then
-  echo -e "\033[31mERROR: Tags file not found: $tags\033[0m" >&2
+  printf '\033[31mERROR: Tags file not found: "%s"\033[0m\n' "$tags" >&2
   exit 1
 fi
 if [[ ! -f "$recipes" ]]; then
-  echo -e "\033[31mERROR: Recipes file not found: $recipes\033[0m" >&2
+  printf '\033[31mERROR: Recipes file not found: "%s"\033[0m\n' "$recipes" >&2
   exit 1
 fi
 if [[ ! -d "$folder_path" ]]; then
-  echo -e "\033[31mERROR: Output folder not found: $folder_path\033[0m" >&2
+  printf '\033[31mERROR: Output folder not found: "%s"\033[0m\n' "$folder_path" >&2
   exit 1
 fi
 if [[ ! -w "$folder_path" ]]; then
-  echo -e "\033[31mERROR: Output folder not writable: $folder_path\033[0m" >&2
+  printf '\033[31mERROR: Output folder not writable: "%s"\033[0m\n' "$folder_path" >&2
   exit 1
 fi
 
 # Check CSVs are non-empty and have headers
 if [[ ! -s "$tags" ]] || ! head -n1 "$tags" >/dev/null 2>&1; then
-  echo -e "\033[31mERROR: Tags CSV is empty or has no header: $tags\033[0m" >&2
+  printf '\033[31mERROR: Tags CSV is empty or has no header: "%s"\033[0m\n' "$tags" >&2
   exit 1
 fi
 if [[ ! -s "$recipes" ]] || ! head -n1 "$recipes" >/dev/null 2>&1; then
-  echo -e "\033[31mERROR: Recipes CSV is empty or has no header: $recipes\033[0m" >&2
+  printf '\033[31mERROR: Recipes CSV is empty or has no header: "%s"\033[0m\n' "$recipes" >&2
   exit 1
 fi
 
@@ -277,7 +284,7 @@ fi
 
 # 8) Final status message --------------------------------------------------------
 if [ -f "$output_csv" ]; then
-  echo -e "\033[32mList of matched images saved to:\033[0m $output_csv"
+  printf '\033[32mList of matched images saved to:\033[0m %s\n' "$output_csv"
 else
   echo -e "\033[31mFailed to create output file.\033[0m"
 fi
@@ -298,6 +305,6 @@ missing_count=$(wc -l < "$tmpdir/missing.txt")
 if [ "$missing_count" -gt 0 ]; then
   echo "FileName" > "$missing_jpgs_csv"
   cat "$tmpdir/missing.txt" >> "$missing_jpgs_csv"
-  echo -e "\033[31mList of unmatched images saved to:\033[0m $missing_jpgs_csv"
+  printf '\033[31mList of unmatched images saved to:\033[0m %s\n' "$missing_jpgs_csv"
   echo ""
 fi
